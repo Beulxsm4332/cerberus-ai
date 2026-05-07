@@ -8,17 +8,9 @@ import {
   Send,
   Menu,
   X,
-  Zap,
-  Shield,
-  Search,
-  Skull,
-  Ghost,
-  Drama,
   Bot,
   ChevronRight,
   Trash2,
-  Sparkles,
-  AlertTriangle,
   Square,
   Copy,
   Check,
@@ -27,10 +19,12 @@ import {
   MessageSquare,
   Clock,
   Wrench,
-  Target,
-  Flame,
-  Globe,
-  Database,
+  Code2,
+  Search,
+  Settings,
+  Brain,
+  PenTool,
+  Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -92,28 +86,26 @@ interface QuickCommand {
 }
 
 // ===== CONSTANTS =====
-const SESSIONS_KEY = 'cerberus-sessions';
+const SESSIONS_KEY = 'nova-sessions';
 const MAX_SESSIONS = 50;
 const MAX_MESSAGES_PER_SESSION = 100;
 
 const QUICK_COMMANDS: QuickCommand[] = [
-  { icon: <Search size={14} />, label: 'OSINT Search', prefix: 'Cari informasi tentang ', color: '#6A0DAD' },
-  { icon: <Skull size={14} />, label: 'Exploit Dev', prefix: 'Buatkan kode untuk ', color: '#DC143C' },
-  { icon: <Shield size={14} />, label: 'Vuln Scan', prefix: 'Cara bypass ', color: '#2ECC71' },
-  { icon: <Drama size={14} />, label: 'Social Eng', prefix: 'Buat skenario ', color: '#E91E63' },
-  { icon: <Ghost size={14} />, label: 'Dark Web', prefix: 'Cari di dark web tentang ', color: '#D4AF37' },
-  { icon: <Wrench size={14} />, label: 'Red Team', prefix: 'Simulasikan serangan ', color: '#F44336' },
-  { icon: <Target size={14} />, label: 'Bug Bounty', prefix: 'Bantuan bug bounty untuk ', color: '#FF6B35' },
-  { icon: <Flame size={14} />, label: 'Android Exploit', prefix: 'Analisis APK ', color: '#00BCD4' },
+  { icon: <Code2 size={14} />, label: 'Generate Code', prefix: 'Generate ', color: '#3b82f6' },
+  { icon: <BugIcon size={14} />, label: 'Debug Code', prefix: 'Debug this code: ', color: '#f59e0b' },
+  { icon: <BarChart3Icon size={14} />, label: 'Analyze Data', prefix: 'Analyze ', color: '#10b981' },
+  { icon: <PenTool size={14} />, label: 'Write Content', prefix: 'Write ', color: '#8b5cf6' },
+  { icon: <Search size={14} />, label: 'Search Web', prefix: 'Search for ', color: '#06b6d4' },
+  { icon: <EyeIcon size={14} />, label: 'Review Code', prefix: 'Review this code: ', color: '#ec4899' },
 ];
 
 const DEFAULT_AGENTS: AgentInfo[] = [
-  { id: 'cerberus-core', name: 'Cerberus Core', emoji: '🐺', color: '#D4AF37', role: 'Master Coding Agent', description: 'Tool-Augmented LLM: Coding, security, web search, system ops.' },
-  { id: 'phantom-security', name: 'Phantom Security', emoji: '💀', color: '#DC143C', role: 'Offensive Security', description: 'Full-spectrum security: XSS/SQLi/RCE/exploit dev/red team.' },
-  { id: 'oracle-research', name: 'Oracle Research', emoji: '🔮', color: '#6A0DAD', role: 'OSINT & Research', description: 'Web search, OSINT, dark web intelligence, research.' },
-  { id: 'wraith-stealth', name: 'Wraith Stealth', emoji: '👻', color: '#2ECC71', role: 'Evasion & Red Team', description: 'Adversary simulation, evasion, DFIR, forensics.' },
-  { id: 'harbinger-social', name: 'Harbinger Social', emoji: '🎭', color: '#E91E63', role: 'Social Engineering', description: 'Phishing analysis, social engineering, awareness.' },
-  { id: 'swift-faq', name: 'Swift FAQ', emoji: '⚡', color: '#00BCD4', role: 'Fast Response & FAQ', description: 'Lightweight agent for quick responses and FAQ.' },
+  { id: 'nova-core', name: 'NOVA Core', emoji: '🌟', color: '#3b82f6', role: 'Master Agent', description: 'Coding, analysis, web search, system ops.' },
+  { id: 'code-architect', name: 'Code Architect', emoji: '💻', color: '#8b5cf6', role: 'Senior Engineer', description: 'Full-stack development, architecture, code review.' },
+  { id: 'research-analyst', name: 'Research Analyst', emoji: '🔍', color: '#06b6d4', role: 'Research Specialist', description: 'Web search, research, analysis, information.' },
+  { id: 'data-analytics', name: 'Data & Analytics', emoji: '📊', color: '#10b981', role: 'Data Analyst', description: 'Data analysis, visualization, statistics.' },
+  { id: 'creative-writer', name: 'Creative Writer', emoji: '✍️', color: '#f59e0b', role: 'Content Creator', description: 'Writing, blog, documentation, creative content.' },
+  { id: 'quick-helper', name: 'Quick Helper', emoji: '⚡', color: '#ec4899', role: 'Fast Response', description: 'Quick answers, FAQ, greetings.' },
 ];
 
 // ===== LOCAL STORAGE HELPERS =====
@@ -139,6 +131,31 @@ function saveSessions(sessions: Session[]) {
   }
 }
 
+// ===== INLINE ICON COMPONENTS =====
+function BugIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m8 2 1.88 1.88" /><path d="M14.12 3.88 16 2" /><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1" /><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6" /><path d="M12 20v-9" /><path d="M6.53 9C4.6 8.8 3 7.1 3 5" /><path d="M6 13H2" /><path d="M3 21c0-2.1 1.7-3.9 3.8-4" /><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4" /><path d="M22 13h-4" /><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4" />
+    </svg>
+  );
+}
+
+function EyeIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function BarChart3Icon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 3v18h18" /><path d="M7 16V8" /><path d="M11 16V5" /><path d="M15 16v-3" /><path d="M19 16v-7" />
+    </svg>
+  );
+}
+
 // ===== CODE BLOCK COMPONENT =====
 function CodeBlock({ className, children }: { className?: string; children?: React.ReactNode }) {
   const [copied, setCopied] = useState(false);
@@ -161,11 +178,11 @@ function CodeBlock({ className, children }: { className?: string; children?: Rea
         <button onClick={handleCopy} className="code-block-copy">
           {copied ? (
             <span className="flex items-center gap-1">
-              <Check size={10} /> Tersalin!
+              <Check size={10} /> Copied!
             </span>
           ) : (
             <span className="flex items-center gap-1">
-              <Copy size={10} /> Salin
+              <Copy size={10} /> Copy
             </span>
           )}
         </button>
@@ -180,11 +197,9 @@ function CodeBlock({ className, children }: { className?: string; children?: Rea
 // ===== MARKDOWN COMPONENTS =====
 const markdownComponents: Components = {
   code({ className, children, ...props }) {
-    // If it's a code block (has className with language), use custom CodeBlock
     if (className && className.startsWith('language-')) {
       return <CodeBlock className={className}>{children}</CodeBlock>;
     }
-    // Inline code
     return (
       <code className={className} {...props}>
         {children}
@@ -192,41 +207,6 @@ const markdownComponents: Components = {
     );
   },
 };
-
-// ===== FLOATING PARTICLES COMPONENT =====
-function FloatingParticles() {
-  const particles = useMemo(() => {
-    return Array.from({ length: 20 }, (_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      delay: Math.random() * 8,
-      duration: 6 + Math.random() * 8,
-      color: i % 3 === 0 ? '#DC143C' : i % 3 === 1 ? '#D4AF37' : '#6A0DAD',
-      size: 1 + Math.random() * 2,
-    }));
-  }, []);
-
-  return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-      {particles.map((p) => (
-        <div
-          key={p.id}
-          className="particle"
-          style={{
-            left: `${p.left}%`,
-            bottom: '-10px',
-            width: `${p.size}px`,
-            height: `${p.size}px`,
-            backgroundColor: p.color,
-            boxShadow: `0 0 ${p.size * 3}px ${p.color}`,
-            animationDelay: `${p.delay}s`,
-            animationDuration: `${p.duration}s`,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
 
 // ===== MARKDOWN MESSAGE COMPONENT =====
 function MessageContent({ content, isStreaming }: { content: string; isStreaming?: boolean }) {
@@ -252,12 +232,11 @@ function AgentAvatar({ agent, size = 'md' }: { agent?: AgentInfo | Message['agen
         sizeClasses[size]
       )}
       style={{
-        backgroundColor: `${agent?.color || '#DC143C'}15`,
-        borderColor: `${agent?.color || '#DC143C'}30`,
-        boxShadow: `0 0 12px ${agent?.color || '#DC143C'}15`,
+        backgroundColor: `${agent?.color || '#3b82f6'}15`,
+        borderColor: `${agent?.color || '#3b82f6'}30`,
       }}
     >
-      {agent?.emoji || '🐺'}
+      {agent?.emoji || '🌟'}
     </div>
   );
 }
@@ -321,22 +300,11 @@ export default function Home() {
     saveSessions(sessions);
   }, [sessions]);
 
-  // Update a specific message in the active session
-  const updateMessage = useCallback((id: string, updates: Partial<Message>) => {
-    setSessions(prev => prev.map(session => {
-      if (session.id !== activeSessionId) return session;
-      return {
-        ...session,
-        messages: session.messages.map(m => m.id === id ? { ...m, ...updates } : m),
-      };
-    }));
-  }, [activeSessionId]);
-
   // Create a new chat session
   const createNewSession = useCallback(() => {
     const newSession: Session = {
       id: `session-${Date.now()}`,
-      title: 'Obrolan Baru',
+      title: 'New Chat',
       messages: [],
       createdAt: Date.now(),
     };
@@ -460,7 +428,7 @@ export default function Home() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message: text,
-            agent: activeAgent.id === 'cerberus-core' ? undefined : activeAgent.id,
+            agent: activeAgent.id === 'nova-core' ? undefined : activeAgent.id,
             history,
             stream: true,
           }),
@@ -575,21 +543,19 @@ export default function Home() {
         // Finalize the message
         setSessions(prev => prev.map(session => {
           if (session.id !== sessionId) return session;
-          // Trim messages to MAX_MESSAGES_PER_SESSION
           let updatedMessages = session.messages.map(m =>
             m.id === aiMessageId
               ? {
                   ...m,
                   content: accumulated,
                   agent: agentInfo,
-                  model: usedModel || agent?.model,
+                  model: usedModel,
                   tokens: totalTokens > 0 ? String(totalTokens) : undefined,
                   responseTimeMs,
                   isStreaming: false,
                 }
               : m
           );
-          // Keep only last MAX_MESSAGES_PER_SESSION
           if (updatedMessages.length > MAX_MESSAGES_PER_SESSION) {
             updatedMessages = updatedMessages.slice(-MAX_MESSAGES_PER_SESSION);
           }
@@ -597,14 +563,13 @@ export default function Home() {
         }));
       } catch (error) {
         if ((error as Error).name === 'AbortError') {
-          // User cancelled - finalize with whatever content was accumulated
           setSessions(prev => prev.map(session => {
             if (session.id !== sessionId) return session;
             return {
               ...session,
               messages: session.messages.map(m =>
                 m.id === aiMessageId
-                  ? { ...m, isStreaming: false, content: m.content || '⏹ Generasi dihentikan.' }
+                  ? { ...m, isStreaming: false, content: m.content || '⏹ Generation stopped.' }
                   : m
               ),
             };
@@ -620,7 +585,7 @@ export default function Home() {
                       ...m,
                       isStreaming: false,
                       role: 'system' as const,
-                      content: '❌ **Koneksi gagal.** Tidak dapat terhubung ke server. Silakan periksa koneksi internet Anda dan coba lagi.',
+                      content: '❌ **Connection failed.** Unable to connect to the server. Please check your connection and try again.',
                     }
                   : m
               ),
@@ -646,22 +611,18 @@ export default function Home() {
   // Regenerate last response
   const handleRegenerate = useCallback(() => {
     if (isLoading) return;
-    // Find the last user message
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
     if (!lastUserMsg) return;
 
-    // Remove the last assistant message
     setSessions(prev => prev.map(session => {
       if (session.id !== activeSessionId) return session;
       const msgs = [...session.messages];
-      // Remove last assistant/system message
       while (msgs.length > 0 && msgs[msgs.length - 1].role !== 'user') {
         msgs.pop();
       }
       return { ...session, messages: msgs };
     }));
 
-    // Re-submit the last user message
     setTimeout(() => {
       handleSubmit(lastUserMsg.content);
     }, 100);
@@ -711,21 +672,15 @@ export default function Home() {
   };
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-cerberus-bg page-transition">
-      {/* Floating particles background */}
-      <FloatingParticles />
-
-      {/* Grid overlay */}
-      <div className="fixed inset-0 grid-overlay pointer-events-none opacity-30 z-0" />
-
+    <div className="h-screen flex flex-col overflow-hidden bg-nova-bg page-transition">
       {/* ===== HEADER ===== */}
-      <header className="relative z-10 flex items-center justify-between px-4 py-3 border-b border-cerberus-border bg-cerberus-surface/80 backdrop-blur-md">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-nova-border bg-nova-surface/80 backdrop-blur-md">
         <div className="flex items-center gap-3">
           {/* Mobile menu button */}
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden text-cerberus-text-dim hover:text-cerberus-text hover:bg-cerberus-card"
+            className="lg:hidden text-nova-text-dim hover:text-nova-text hover:bg-nova-card"
             onClick={() => setSidebarOpen(!sidebarOpen)}
           >
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
@@ -733,16 +688,16 @@ export default function Home() {
 
           {/* Logo */}
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cerberus-crimson to-cerberus-gold flex items-center justify-center">
-              <span className="text-base">🐺</span>
+            <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
+              <span className="text-base">🌟</span>
             </div>
             <div>
-              <h1 className="text-sm font-bold tracking-wide text-cerberus-text">
-                CERBERUS AI
+              <h1 className="text-sm font-bold tracking-wide text-nova-text">
+                NOVA AI
               </h1>
               <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 cerberus-pulse" />
-                <span className="text-[10px] text-emerald-400/80">Sistem Online</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] text-emerald-400/80">Online</span>
               </div>
             </div>
           </div>
@@ -752,26 +707,26 @@ export default function Home() {
         <div className="hidden sm:flex items-center gap-2">
           <AgentAvatar agent={currentAgentForHeader} size="sm" />
           <div className="text-right">
-            <p className="text-xs font-medium text-cerberus-text">{currentAgentForHeader.name}</p>
-            <p className="text-[10px] text-cerberus-text-dim">{currentAgentForHeader.role}</p>
+            <p className="text-xs font-medium text-nova-text">{currentAgentForHeader.name}</p>
+            <p className="text-[10px] text-nova-text-dim">{currentAgentForHeader.role}</p>
           </div>
         </div>
 
-        {/* Clear chat / New chat */}
+        {/* Actions */}
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
             size="icon"
-            className="text-cerberus-text-dim hover:text-cerberus-crimson hover:bg-cerberus-card"
+            className="text-nova-text-dim hover:text-nova-text hover:bg-nova-card"
             onClick={createNewSession}
-            title="Obrolan baru"
+            title="New chat"
           >
             <Plus size={16} />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="text-cerberus-text-dim hover:text-cerberus-crimson hover:bg-cerberus-card"
+            className="text-nova-text-dim hover:text-nova-text hover:bg-nova-card"
             onClick={() => {
               if (activeSessionId) {
                 setSessions(prev => prev.map(s =>
@@ -780,7 +735,7 @@ export default function Home() {
               }
               inputRef.current?.focus();
             }}
-            title="Bersihkan chat"
+            title="Clear chat"
           >
             <Trash2 size={16} />
           </Button>
@@ -788,7 +743,7 @@ export default function Home() {
       </header>
 
       {/* ===== MAIN CONTENT ===== */}
-      <div className="flex-1 flex overflow-hidden relative z-10">
+      <div className="flex-1 flex overflow-hidden relative">
         {/* ===== SIDEBAR ===== */}
         <AnimatePresence>
           {(sidebarOpen || typeof window !== 'undefined') && (
@@ -807,35 +762,35 @@ export default function Home() {
               <motion.aside
                 initial={false}
                 animate={{
-                  x: sidebarOpen ? 0 : (typeof window !== 'undefined' && window.innerWidth < 1024) ? -280 : 0,
+                  x: sidebarOpen ? 0 : (typeof window !== 'undefined' && window.innerWidth < 1024) ? -240 : 0,
                 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                transition={{ type: 'tween', duration: 0.2 }}
                 className={cn(
-                  'w-[280px] flex-shrink-0 border-r border-cerberus-border bg-cerberus-surface/90 backdrop-blur-md flex flex-col z-30',
+                  'w-[240px] flex-shrink-0 border-r border-nova-border bg-nova-surface/95 backdrop-blur-md flex flex-col z-30',
                   'lg:translate-x-0 lg:relative lg:z-0',
                   !sidebarOpen && 'hidden lg:flex'
                 )}
               >
-                {/* Sidebar: New Chat button */}
-                <div className="p-3 border-b border-cerberus-border">
+                {/* New Chat button */}
+                <div className="p-3 border-b border-nova-border">
                   <button
                     onClick={createNewSession}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-cerberus-crimson/30 bg-cerberus-crimson/10 text-cerberus-crimson hover:bg-cerberus-crimson/20 transition-all text-xs font-medium"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all text-xs font-medium"
                   >
                     <Plus size={14} />
-                    Obrolan Baru
+                    New Chat
                   </button>
                 </div>
 
                 {/* Session list */}
                 {sessions.length > 0 && (
-                  <div className="border-b border-cerberus-border">
+                  <div className="border-b border-nova-border">
                     <div className="px-4 py-2">
-                      <h3 className="text-[10px] font-semibold tracking-wider text-cerberus-text-dim uppercase">
-                        Riwayat Obrolan
+                      <h3 className="text-[10px] font-semibold tracking-wider text-nova-text-dim uppercase">
+                        History
                       </h3>
                     </div>
-                    <ScrollArea className="max-h-48 cerberus-scrollbar-slim">
+                    <ScrollArea className="max-h-44 nova-scrollbar-slim">
                       <div className="px-2 pb-2 space-y-0.5">
                         {sessions.map((session) => (
                           <button
@@ -846,27 +801,27 @@ export default function Home() {
                               activeSessionId === session.id && 'active'
                             )}
                           >
-                            <MessageSquare size={13} className="text-cerberus-text-dim flex-shrink-0" />
+                            <MessageSquare size={13} className="text-nova-text-dim flex-shrink-0" />
                             <div className="flex-1 min-w-0">
-                              <p className="text-[11px] text-cerberus-text truncate">
+                              <p className="text-[11px] text-nova-text truncate">
                                 {session.title}
                               </p>
-                              <p className="text-[9px] text-cerberus-text-dim flex items-center gap-1">
+                              <p className="text-[9px] text-nova-text-dim flex items-center gap-1">
                                 <Clock size={8} />
                                 {new Date(session.createdAt).toLocaleDateString('id-ID', {
                                   day: 'numeric',
                                   month: 'short',
                                 })}
                                 {' · '}
-                                {session.messages.length} pesan
+                                {session.messages.length} msgs
                               </p>
                             </div>
                             <button
                               onClick={(e) => deleteSession(session.id, e)}
-                              className="opacity-0 group-hover:opacity-100 hover:opacity-100 p-1 rounded text-cerberus-text-dim hover:text-cerberus-crimson transition-all"
-                              style={{ opacity: activeSessionId === session.id ? 0.6 : 0 }}
+                              className="opacity-0 hover:opacity-100 p-1 rounded text-nova-text-dim hover:text-red-400 transition-all"
+                              style={{ opacity: activeSessionId === session.id ? 0.5 : 0 }}
                               onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-                              onMouseLeave={(e) => (e.currentTarget.style.opacity = activeSessionId === session.id ? '0.6' : '0')}
+                              onMouseLeave={(e) => (e.currentTarget.style.opacity = activeSessionId === session.id ? '0.5' : '0')}
                             >
                               <Trash2 size={11} />
                             </button>
@@ -877,16 +832,17 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Agent list */}
-                <div className="p-3 border-b border-cerberus-border">
-                  <h2 className="text-xs font-semibold tracking-wider text-cerberus-gold uppercase mb-1">
-                    Agent Cerberus
+                {/* Agent list header */}
+                <div className="p-3 border-b border-nova-border">
+                  <h2 className="text-xs font-semibold tracking-wider text-blue-400 uppercase mb-1">
+                    Agents
                   </h2>
-                  <p className="text-[10px] text-cerberus-text-dim">
-                    Pilih agent atau biarkan sistem memilih otomatis
+                  <p className="text-[10px] text-nova-text-dim">
+                    Select agent or auto-route
                   </p>
                 </div>
 
+                {/* Agent list */}
                 <ScrollArea className="flex-1">
                   <div className="p-2 space-y-1">
                     {agents.map((agent) => (
@@ -894,29 +850,29 @@ export default function Home() {
                         key={agent.id}
                         onClick={() => selectAgent(agent)}
                         className={cn(
-                          'agent-item w-full flex items-center gap-3 p-3 rounded-xl border border-transparent text-left transition-all',
+                          'agent-item w-full flex items-center gap-3 p-2.5 rounded-xl border border-transparent text-left transition-all',
                           activeAgent.id === agent.id && 'active'
                         )}
                       >
                         <div
-                          className="w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0 border"
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0 border"
                           style={{
-                            backgroundColor: `${agent.color}15`,
-                            borderColor: `${agent.color}30`,
+                            backgroundColor: `${agent.color}12`,
+                            borderColor: `${agent.color}25`,
                           }}
                         >
                           {agent.emoji}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-cerberus-text truncate">
+                          <p className="text-xs font-medium text-nova-text truncate">
                             {agent.name}
                           </p>
-                          <p className="text-[10px] text-cerberus-text-dim truncate">
+                          <p className="text-[10px] text-nova-text-dim truncate">
                             {agent.role}
                           </p>
                         </div>
                         {activeAgent.id === agent.id && (
-                          <ChevronRight size={14} className="text-cerberus-crimson flex-shrink-0" />
+                          <ChevronRight size={14} className="text-blue-400 flex-shrink-0" />
                         )}
                       </button>
                     ))}
@@ -924,11 +880,11 @@ export default function Home() {
                 </ScrollArea>
 
                 {/* Sidebar footer */}
-                <div className="p-3 border-t border-cerberus-border">
+                <div className="p-3 border-t border-nova-border">
                   <div className="flex items-center gap-2 px-2">
-                    <AlertTriangle size={12} className="text-cerberus-gold" />
-                    <p className="text-[10px] text-cerberus-text-dim">
-                      Tool-Augmented LLM • 32+ Tools • Function Calling
+                    <Brain size={12} className="text-blue-400" />
+                    <p className="text-[10px] text-nova-text-dim">
+                      NOVA AI v4.0 · 32 Tools · Function Calling
                     </p>
                   </div>
                 </div>
@@ -942,114 +898,84 @@ export default function Home() {
           {/* Messages */}
           <div
             ref={scrollRef}
-            className="flex-1 overflow-y-auto cerberus-scrollbar"
+            className="flex-1 overflow-y-auto nova-scrollbar"
           >
             {messages.length === 0 ? (
               /* ===== WELCOME SCREEN ===== */
               <div className="h-full flex items-center justify-center p-4">
-                <div className="text-center max-w-lg space-y-8">
-                  {/* Cerberus Logo */}
+                <div className="text-center max-w-lg space-y-6">
                   <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
+                    initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.6, ease: 'easeOut' }}
-                    className="space-y-4"
+                    transition={{ duration: 0.3 }}
+                    className="space-y-3"
                   >
-                    <div className="relative inline-block">
-                      <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-cerberus-crimson via-cerberus-purple to-cerberus-gold flex items-center justify-center mx-auto">
-                        <span className="text-4xl">🐺</span>
-                      </div>
-                      <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-cerberus-crimson/20 via-cerberus-purple/20 to-cerberus-gold/20 blur-xl -z-10" />
+                    {/* Logo */}
+                    <div className="w-16 h-16 rounded-2xl bg-blue-500 flex items-center justify-center mx-auto">
+                      <span className="text-3xl">🌟</span>
                     </div>
 
                     <div>
-                      <h2 className="text-2xl font-bold text-cerberus-text welcome-glow">
-                        Cerberus AI
+                      <h2 className="text-2xl font-bold text-nova-text">
+                        NOVA AI
                       </h2>
-                      <p className="text-sm text-cerberus-text-dim mt-1">
-                        Multi-Agent Cybersecurity System
+                      <p className="text-sm text-nova-text-dim mt-1">
+                        Super AI Agent — Coding, Analysis, Research & More
                       </p>
                     </div>
-
-                    {/* Version badge */}
-                    <div className="flex items-center justify-center gap-2">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cerberus-crimson/15 text-cerberus-crimson border border-cerberus-crimson/25">
-                        v4.0
-                      </span>
-                      <span className="text-[10px] text-cerberus-text-dim">
-                        Tool-Augmented LLM • Function Calling • Meta-Learning
-                      </span>
-                    </div>
-
-                    {/* Stats */}
-                    <p className="text-[11px] text-cerberus-text-dim">
-                      6 Agents • 32+ Executable Tools • 4 Categories • Mistral AI
-                    </p>
                   </motion.div>
 
-                  {/* Description */}
-                  <motion.p
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.3, duration: 0.5 }}
-                    className="text-xs text-cerberus-text-dim leading-relaxed"
-                  >
-                    Tool-Augmented LLM system dengan function calling, 32+ executable tools, dan meta-learning.
-                    Coding, security analysis, OSINT, red team, dan web search — semua dengan tool grounding.
-                  </motion.p>
-
+                  {/* Capability cards */}
                   <motion.div
-                    initial={{ y: 20, opacity: 0 }}
+                    initial={{ y: 12, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.4, duration: 0.5 }}
-                    className="flex flex-wrap items-center justify-center gap-1.5"
+                    transition={{ delay: 0.15, duration: 0.3 }}
+                    className="flex flex-wrap items-center justify-center gap-2"
                   >
                     {[
-                      { emoji: '💻', label: 'Coding', count: 8, color: '#00E676' },
-                      { emoji: '🛡️', label: 'Security', count: 17, color: '#DC143C' },
-                      { emoji: '⚙️', label: 'System', count: 4, color: '#FF6B35' },
-                      { emoji: '🧠', label: 'Meta', count: 3, color: '#6A0DAD' },
+                      { icon: <Code2 size={14} />, label: 'Coding', count: '8 tools', color: '#3b82f6' },
+                      { icon: <Search size={14} />, label: 'Research', count: 'web search & scrape', color: '#06b6d4' },
+                      { icon: <Settings size={14} />, label: 'System', count: 'file ops & commands', color: '#f59e0b' },
+                      { icon: <Brain size={14} />, label: 'Meta', count: 'learning & evolution', color: '#8b5cf6' },
                     ].map((cat) => (
                       <span
                         key={cat.label}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] border transition-all hover:scale-105 cursor-default"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] border cursor-default"
                         style={{
-                          backgroundColor: `${cat.color}10`,
-                          borderColor: `${cat.color}25`,
+                          backgroundColor: `${cat.color}08`,
+                          borderColor: `${cat.color}20`,
                           color: cat.color,
                         }}
                       >
-                        <span>{cat.emoji}</span>
+                        {cat.icon}
                         {cat.label}
-                        <span className="opacity-60">({cat.count})</span>
+                        <span className="opacity-50">· {cat.count}</span>
                       </span>
                     ))}
                   </motion.div>
 
+                  {/* Quick start buttons */}
                   <motion.div
-                    initial={{ y: 20, opacity: 0 }}
+                    initial={{ y: 12, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.5, duration: 0.5 }}
-                    className="grid grid-cols-2 sm:grid-cols-4 gap-2"
+                    transition={{ delay: 0.25, duration: 0.3 }}
+                    className="grid grid-cols-2 sm:grid-cols-3 gap-2"
                   >
                     {QUICK_COMMANDS.map((cmd) => (
                       <button
                         key={cmd.label}
                         onClick={() => handleQuickCommand(cmd.prefix)}
-                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-cerberus-border bg-cerberus-card/50 hover:bg-cerberus-card hover:border-cerberus-crimson/30 transition-all text-left group"
+                        className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-nova-border bg-nova-card/50 hover:bg-nova-card hover:border-nova-border transition-all text-left group"
                       >
                         <div
                           className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
-                          style={{ backgroundColor: `${cmd.color}15`, color: cmd.color }}
+                          style={{ backgroundColor: `${cmd.color}12`, color: cmd.color }}
                         >
                           {cmd.icon}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-medium text-cerberus-text group-hover:text-cerberus-gold transition-colors">
+                          <p className="text-xs font-medium text-nova-text group-hover:text-nova-text-dim transition-colors">
                             {cmd.label}
-                          </p>
-                          <p className="text-[10px] text-cerberus-text-dim truncate">
-                            {cmd.prefix}...
                           </p>
                         </div>
                       </button>
@@ -1058,32 +984,31 @@ export default function Home() {
 
                   {/* Agents preview */}
                   <motion.div
-                    initial={{ y: 20, opacity: 0 }}
+                    initial={{ y: 12, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.7, duration: 0.5 }}
+                    transition={{ delay: 0.35, duration: 0.3 }}
                     className="flex items-center justify-center gap-3"
                   >
-                    {DEFAULT_AGENTS.map((agent, i) => (
+                    {DEFAULT_AGENTS.map((agent) => (
                       <motion.div
                         key={agent.id}
-                        initial={{ y: 10, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.8 + i * 0.1 }}
-                        className="flex flex-col items-center gap-1"
+                        className="flex flex-col items-center gap-1 cursor-pointer"
+                        onClick={() => selectAgent(agent)}
+                        title={agent.name}
+                        whileHover={{ scale: 1.05 }}
+                        transition={{ duration: 0.15 }}
                       >
                         <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center text-lg border transition-transform hover:scale-110 cursor-pointer"
+                          className="w-10 h-10 rounded-xl flex items-center justify-center text-lg border transition-all hover:scale-110"
                           style={{
-                            backgroundColor: `${agent.color}12`,
-                            borderColor: `${agent.color}25`,
+                            backgroundColor: `${agent.color}10`,
+                            borderColor: `${agent.color}20`,
                           }}
-                          onClick={() => selectAgent(agent)}
-                          title={agent.name}
                         >
                           {agent.emoji}
                         </div>
-                        <span className="text-[9px] text-cerberus-text-dim max-w-[60px] text-center truncate">
-                          {agent.name.split(' ')[0]}
+                        <span className="text-[9px] text-nova-text-dim max-w-[60px] text-center truncate">
+                          {agent.name.split(' ').pop()}
                         </span>
                       </motion.div>
                     ))}
@@ -1097,9 +1022,9 @@ export default function Home() {
                   {messages.map((msg) => (
                     <motion.div
                       key={msg.id}
-                      initial={{ opacity: 0, y: 12 }}
+                      initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3 }}
+                      transition={{ duration: 0.2 }}
                       className={cn(
                         'flex gap-3',
                         msg.role === 'user' && 'flex-row-reverse'
@@ -1107,8 +1032,8 @@ export default function Home() {
                     >
                       {/* Avatar */}
                       {msg.role === 'user' ? (
-                        <div className="w-8 h-8 rounded-lg bg-cerberus-card border border-cerberus-border flex items-center justify-center flex-shrink-0">
-                          <Bot size={16} className="text-cerberus-text-dim" />
+                        <div className="w-8 h-8 rounded-lg bg-nova-card border border-nova-border flex items-center justify-center flex-shrink-0">
+                          <Bot size={16} className="text-nova-text-dim" />
                         </div>
                       ) : (
                         <AgentAvatar agent={msg.agent} size="md" />
@@ -1119,9 +1044,9 @@ export default function Home() {
                         className={cn(
                           'max-w-[80%] rounded-2xl px-4 py-3 border message-bubble relative',
                           msg.role === 'user'
-                            ? 'bg-cerberus-crimson/10 border-cerberus-crimson/20 rounded-tr-sm'
-                            : 'bg-cerberus-card border-cerberus-border rounded-tl-sm',
-                          msg.role === 'system' && 'bg-cerberus-gold/5 border-cerberus-gold/20'
+                            ? 'bg-blue-500/10 border-blue-500/20 rounded-tr-sm'
+                            : 'bg-nova-card border-nova-border rounded-tl-sm',
+                          msg.role === 'system' && 'bg-violet-500/5 border-violet-500/20'
                         )}
                       >
                         {/* Agent name for assistant messages */}
@@ -1133,49 +1058,48 @@ export default function Home() {
                           </div>
                         )}
 
-                        {/* Message content */}
+                        {/* Thinking state */}
                         {msg.isThinking && msg.activeTool && (
-                          <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-lg bg-cerberus-crimson/10 border border-cerberus-crimson/20">
-                            <div className="w-3 h-3 rounded-full bg-cerberus-crimson animate-pulse" />
-                            <span className="text-xs text-cerberus-crimson">
+                          <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                            <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
+                            <span className="text-xs text-blue-400">
                               Using {msg.activeTool}...
                             </span>
                           </div>
                         )}
                         {msg.isThinking && !msg.activeTool && (
-                          <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-lg bg-cerberus-purple/10 border border-cerberus-purple/20">
-                            <div className="w-3 h-3 rounded-full bg-cerberus-purple animate-pulse" />
-                            <span className="text-xs text-cerberus-purple">
-                              Agent is thinking...
+                          <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-lg bg-violet-500/10 border border-violet-500/20">
+                            <div className="w-2.5 h-2.5 rounded-full bg-violet-500 animate-pulse" />
+                            <span className="text-xs text-violet-400">
+                              Thinking...
                             </span>
                           </div>
                         )}
 
+                        {/* Message content */}
                         {msg.role === 'assistant' || msg.role === 'system' ? (
                           <MessageContent content={msg.content} isStreaming={msg.isStreaming && !msg.isThinking} />
                         ) : (
                           <p className="text-sm leading-relaxed">{msg.content}</p>
                         )}
 
-                        {/* Message actions for assistant messages */}
+                        {/* Message actions */}
                         {msg.role === 'assistant' && !msg.isStreaming && msg.content && (
                           <div className="message-actions flex items-center gap-1 mt-2">
                             <button
                               onClick={() => handleCopyMessage(msg.content)}
-                              className="flex items-center gap-1 px-1.5 py-1 rounded-md text-cerberus-text-dim hover:text-cerberus-text hover:bg-cerberus-surface transition-all text-[10px]"
-                              title="Salin pesan"
+                              className="flex items-center gap-1 px-1.5 py-1 rounded-md text-nova-text-dim hover:text-nova-text hover:bg-nova-surface transition-all text-[10px]"
                             >
                               <Copy size={11} />
-                              Salin
+                              Copy
                             </button>
                             {msg.id === messages[messages.length - 1]?.id && !isLoading && (
                               <button
                                 onClick={handleRegenerate}
-                                className="flex items-center gap-1 px-1.5 py-1 rounded-md text-cerberus-text-dim hover:text-cerberus-text hover:bg-cerberus-surface transition-all text-[10px]"
-                                title="Regenerasi respons"
+                                className="flex items-center gap-1 px-1.5 py-1 rounded-md text-nova-text-dim hover:text-nova-text hover:bg-nova-surface transition-all text-[10px]"
                               >
                                 <RefreshCw size={11} />
-                                Regenerasi
+                                Regenerate
                               </button>
                             )}
                           </div>
@@ -1183,7 +1107,7 @@ export default function Home() {
 
                         {/* Metrics bar */}
                         {msg.role === 'assistant' && !msg.isStreaming && (msg.model || msg.responseTimeMs || msg.tokens) && (
-                          <div className="metrics-bar mt-2 pt-1 border-t border-cerberus-border/50">
+                          <div className="metrics-bar mt-2 pt-1 border-t border-nova-border/50">
                             {msg.model && (
                               <span className="metric-badge">{msg.model}</span>
                             )}
@@ -1205,24 +1129,24 @@ export default function Home() {
                         {/* Tool calls collapsible */}
                         {msg.toolCalls && msg.toolCalls.length > 0 && !msg.isStreaming && (
                           <details className="mt-2">
-                            <summary className="text-[10px] text-cerberus-text-dim cursor-pointer hover:text-cerberus-gold transition-colors flex items-center gap-1">
+                            <summary className="text-[10px] text-nova-text-dim cursor-pointer hover:text-blue-400 transition-colors flex items-center gap-1">
                               <Wrench size={10} />
                               Tool Calls ({msg.toolCalls.length})
                             </summary>
-                            <div className="mt-1 space-y-1 max-h-48 overflow-y-auto cerberus-scrollbar-slim">
+                            <div className="mt-1 space-y-1 max-h-48 overflow-y-auto nova-scrollbar-slim">
                               {msg.toolCalls.map((tc, i) => (
-                                <div key={i} className="px-2 py-1.5 rounded-md bg-cerberus-surface/50 border border-cerberus-border/50 text-[10px]">
+                                <div key={i} className="px-2 py-1.5 rounded-md bg-nova-surface/50 border border-nova-border/50 text-[10px]">
                                   <div className="flex items-center gap-1.5">
                                     <span className={tc.status === 'completed' ? 'text-emerald-400' : 'text-red-400'}>
                                       {tc.status === 'completed' ? '✓' : '✗'}
                                     </span>
-                                    <span className="font-mono text-cerberus-gold">{tc.toolName}</span>
+                                    <span className="font-mono text-blue-400">{tc.toolName}</span>
                                     {tc.duration && (
-                                      <span className="text-cerberus-text-dim ml-auto">{tc.duration}ms</span>
+                                      <span className="text-nova-text-dim ml-auto">{tc.duration}ms</span>
                                     )}
                                   </div>
                                   {tc.result && (
-                                    <pre className="mt-1 text-cerberus-text-dim overflow-x-auto whitespace-pre-wrap max-h-20 opacity-70">{tc.result.slice(0, 300)}{tc.result.length > 300 ? '...' : ''}</pre>
+                                    <pre className="mt-1 text-nova-text-dim overflow-x-auto whitespace-pre-wrap max-h-20 opacity-70">{tc.result.slice(0, 300)}{tc.result.length > 300 ? '...' : ''}</pre>
                                   )}
                                 </div>
                               ))}
@@ -1231,7 +1155,7 @@ export default function Home() {
                         )}
 
                         {/* Timestamp */}
-                        <p className="text-[10px] text-cerberus-text-dim mt-1.5">
+                        <p className="text-[10px] text-nova-text-dim mt-1.5">
                           {new Date(msg.timestamp).toLocaleTimeString('id-ID', {
                             hour: '2-digit',
                             minute: '2-digit',
@@ -1248,7 +1172,7 @@ export default function Home() {
           </div>
 
           {/* ===== INPUT AREA ===== */}
-          <div className="border-t border-cerberus-border bg-cerberus-surface/80 backdrop-blur-md p-3">
+          <div className="border-t border-nova-border bg-nova-surface/80 backdrop-blur-md p-3">
             <div className="max-w-3xl mx-auto space-y-2">
               {/* Quick commands (when messages exist) */}
               {messages.length > 0 && (
@@ -1257,10 +1181,10 @@ export default function Home() {
                     <button
                       key={cmd.label}
                       onClick={() => handleQuickCommand(cmd.prefix)}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-cerberus-border bg-cerberus-card/50 hover:bg-cerberus-card hover:border-cerberus-crimson/20 transition-all whitespace-nowrap flex-shrink-0"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-nova-border bg-nova-card/50 hover:bg-nova-card transition-all whitespace-nowrap flex-shrink-0"
                     >
                       <span style={{ color: cmd.color }}>{cmd.icon}</span>
-                      <span className="text-[10px] text-cerberus-text-dim">{cmd.label}</span>
+                      <span className="text-[10px] text-nova-text-dim">{cmd.label}</span>
                     </button>
                   ))}
                 </div>
@@ -1274,8 +1198,8 @@ export default function Home() {
                     <div
                       className="w-6 h-6 rounded-md flex items-center justify-center text-xs border"
                       style={{
-                        backgroundColor: `${activeAgent.color}12`,
-                        borderColor: `${activeAgent.color}25`,
+                        backgroundColor: `${activeAgent.color}10`,
+                        borderColor: `${activeAgent.color}20`,
                       }}
                     >
                       {activeAgent.emoji}
@@ -1286,27 +1210,24 @@ export default function Home() {
                     value={inputValue}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
-                    placeholder={`Kirim pesan ke ${activeAgent.name}...`}
+                    placeholder={`Message ${activeAgent.name}...`}
                     disabled={isLoading}
                     rows={1}
-                    className="w-full resize-none rounded-xl border border-cerberus-border bg-cerberus-card text-cerberus-text placeholder:text-cerberus-text-dim pl-11 pr-10 py-3 text-sm input-glow focus:outline-none disabled:opacity-50 transition-all min-h-[44px]"
+                    className="w-full resize-none rounded-xl border border-nova-border bg-nova-card text-nova-text placeholder:text-nova-text-dim pl-11 pr-10 py-3 text-sm focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 disabled:opacity-50 transition-all min-h-[44px]"
                     style={{
                       maxHeight: '150px',
                     }}
                   />
-                  {/* Character count & model indicator */}
+                  {/* Character count */}
                   <div className="absolute right-3 bottom-3 flex flex-col items-end gap-0.5">
                     {inputValue.length > 500 && (
                       <span className={cn(
                         'text-[9px]',
-                        inputValue.length > 9000 ? 'text-cerberus-crimson' : 'text-cerberus-text-dim'
+                        inputValue.length > 9000 ? 'text-red-400' : 'text-nova-text-dim'
                       )}>
                         {inputValue.length}/10000
                       </span>
                     )}
-                    <span className="text-[9px] text-cerberus-text-dim opacity-50">
-                      {activeAgent.model || 'devstral-small-2507'}
-                    </span>
                   </div>
                 </div>
 
@@ -1314,29 +1235,26 @@ export default function Home() {
                 {isLoading ? (
                   <Button
                     onClick={stopGeneration}
-                    className="h-[44px] w-[44px] rounded-xl bg-cerberus-gold/20 hover:bg-cerberus-gold/30 text-cerberus-gold border border-cerberus-gold/30 flex-shrink-0 transition-all"
+                    className="h-[44px] w-[44px] rounded-xl bg-nova-card hover:bg-nova-border text-nova-text-dim border border-nova-border flex-shrink-0 transition-all"
                   >
-                    <Square size={18} />
+                    <Square size={16} />
                   </Button>
                 ) : (
                   <Button
                     onClick={() => handleSubmit()}
                     disabled={!inputValue.trim()}
-                    className="h-[44px] w-[44px] rounded-xl bg-cerberus-crimson hover:bg-cerberus-crimson/80 text-white flex-shrink-0 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                    style={{
-                      boxShadow: inputValue.trim() ? '0 0 20px rgba(220, 20, 60, 0.3)' : 'none',
-                    }}
+                    className="h-[44px] w-[44px] rounded-xl bg-blue-500 hover:bg-blue-600 text-white flex-shrink-0 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                   >
-                    <Send size={18} />
+                    <Send size={16} />
                   </Button>
                 )}
               </div>
 
               {/* Footer hint */}
               <div className="flex items-center justify-center gap-1.5 pt-1">
-                <Zap size={10} className="text-cerberus-text-dim" />
-                <p className="text-[10px] text-cerberus-text-dim">
-                  Tekan <kbd className="px-1 py-0.5 rounded bg-cerberus-card border border-cerberus-border text-[9px]">Enter</kbd> untuk mengirim, <kbd className="px-1 py-0.5 rounded bg-cerberus-card border border-cerberus-border text-[9px]">Shift+Enter</kbd> untuk baris baru
+                <Zap size={10} className="text-nova-text-dim" />
+                <p className="text-[10px] text-nova-text-dim">
+                  Press <kbd className="px-1 py-0.5 rounded bg-nova-card border border-nova-border text-[9px]">Enter</kbd> to send, <kbd className="px-1 py-0.5 rounded bg-nova-card border border-nova-border text-[9px]">Shift+Enter</kbd> for new line
                 </p>
               </div>
             </div>

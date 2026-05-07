@@ -1,4 +1,4 @@
-// Cerberus AI v4.0 — Chat API Route
+// NOVA AI v4.0 — Chat API Route
 // POST /api/chat — Tool-Augmented LLM with agent loop, tool calling, and SSE streaming
 
 import { NextRequest, NextResponse } from "next/server";
@@ -13,7 +13,7 @@ import { getSelfEvolutionSummary, getContextForTask, recordExperience } from "@/
 // Import and register all tools SYNCHRONOUSLY at module load time
 import { allTools } from "@/lib/tools/definitions";
 toolRegistry.registerTools(allTools);
-console.log(`[Cerberus v4.0] Registered ${allTools.length} tools on startup`);
+console.log(`[NOVA v4.0] Registered ${allTools.length} tools on startup`);
 
 const MAX_ITERATIONS = 5;
 
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     // ===== NON-STREAMING: AGENT LOOP =====
     return handleNonStreaming(agent, messages, sid);
   } catch (error) {
-    console.error("[Cerberus API Error]:", error);
+    console.error("[NOVA API Error]:", error);
     const errorMessage = error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
@@ -292,7 +292,7 @@ async function handleStreaming(agent: AgentDefinition, messages: MistralMessage[
           return;
 
         } catch (error) {
-          console.error(`[Cerberus Stream] Iteration ${iterations} error:`, error);
+          console.error(`[NOVA Stream] Iteration ${iterations} error:`, error);
           const errorMsg = error instanceof Error ? error.message : "Error";
 
           controller.enqueue(encoder.encode(

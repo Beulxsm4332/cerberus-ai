@@ -1,4 +1,4 @@
-// Cerberus AI v4.0 — Tool Definitions
+// NOVA AI v4.0 — Tool Definitions
 // All executable tools for the Tool-Augmented LLM system
 
 import type { ToolDefinition, ToolContext, ToolResult } from './types';
@@ -290,14 +290,14 @@ const webScrape: ToolDefinition = {
   },
 };
 
-function makeSecurityTool(id: string, name: string, description: string, systemPrompt: string): ToolDefinition {
+function makeAnalysisTool(id: string, name: string, description: string, systemPrompt: string): ToolDefinition {
   return {
     id,
     name,
     description,
-    category: 'Security',
+    category: 'Analysis',
     parameters: [
-      { name: 'query', type: 'string', description: 'Security analysis query or target description', required: true },
+      { name: 'query', type: 'string', description: 'Analysis query or target description', required: true },
       { name: 'details', type: 'string', description: 'Additional context or specifics', required: false },
     ],
     execute: async (params) => {
@@ -309,219 +309,219 @@ function makeSecurityTool(id: string, name: string, description: string, systemP
   };
 }
 
-const securityScan: ToolDefinition = makeSecurityTool(
+const securityScan: ToolDefinition = makeAnalysisTool(
   'security_scan',
-  'Security Scanner',
-  'General security scanning and vulnerability assessment',
-  `You are an expert security analyst. Perform a comprehensive security assessment.
-Provide detailed findings with severity levels, CVE references, and remediation steps.
-Include attack vectors, impact analysis, and proof-of-concept where appropriate.`
+  'System Auditor',
+  'Comprehensive system and code audit for quality, security, and best practices',
+  `You are an expert system auditor. Perform a comprehensive audit and assessment.
+Provide detailed findings with severity levels and actionable remediation steps.
+Focus on code quality, security best practices, performance, and maintainability.
+Include specific recommendations with code examples where appropriate.`
 );
 
-const vulnCheck: ToolDefinition = makeSecurityTool(
+const vulnCheck: ToolDefinition = makeAnalysisTool(
   'vuln_check',
-  'Vulnerability Checker',
-  'Check known CVEs and vulnerability databases',
-  `You are a vulnerability intelligence expert. Search for known vulnerabilities.
-Provide CVE IDs, CVSS scores, affected versions, exploit availability, and patch information.
-Include reference links and detailed technical analysis.`
+  'Vulnerability Assessor',
+  'Check known vulnerabilities and provide assessment with remediation guidance',
+  `You are a vulnerability assessment expert. Search for known issues and provide assessment.
+Provide CVE IDs, CVSS scores, affected versions, and patch information.
+Include reference links and detailed remediation guidance.
+Focus on helping users understand and fix the issues.`
 );
 
-const xssAnalyze: ToolDefinition = makeSecurityTool(
+const xssAnalyze: ToolDefinition = makeAnalysisTool(
   'xss_analyze',
-  'XSS Analyzer',
-  'Cross-Site Scripting vulnerability analysis with payload generation',
-  `You are an XSS (Cross-Site Scripting) expert. Analyze for XSS vulnerabilities.
+  'Web Security Review',
+  'Web application security review focusing on input validation and output encoding',
+  `You are a web security expert. Review web application code for security issues.
 Provide:
-1. Vulnerability identification (reflected, stored, DOM-based)
-2. Comprehensive payload list with context-aware payloads
-3. WAF bypass techniques
-4. Polyglot payloads
-5. Mutation XSS (mXSS) vectors
-6. Remediation with code examples
-Include working PoC payloads.`
+1. Input validation and sanitization analysis
+2. Output encoding and XSS prevention
+3. Content Security Policy recommendations
+4. Security headers analysis
+5. Remediation with code examples
+Focus on defense and prevention with practical code examples.`
 );
 
-const sqliAnalyze: ToolDefinition = makeSecurityTool(
+const sqliAnalyze: ToolDefinition = makeAnalysisTool(
   'sqli_analyze',
-  'SQL Injection Analyzer',
-  'SQL injection vulnerability analysis with exploitation techniques',
-  `You are a SQL injection expert. Analyze for SQLi vulnerabilities.
+  'Database Review',
+  'Database query analysis and security review for SQL injection prevention',
+  `You are a database security expert. Review database queries and access patterns.
 Provide:
-1. Injection type identification (error-based, union, blind, time-based)
-2. Database fingerprinting techniques
-3. Data extraction methodologies
-4. WAF bypass payloads
-5. Second-order injection detection
-6. NoSQL injection vectors
-Include complete exploitation steps and remediation.`
+1. SQL injection risk assessment
+2. Parameterized query recommendations
+3. ORM best practices
+4. Input validation for database operations
+5. Query optimization suggestions
+6. Access control review
+Focus on prevention with practical secure code examples.`
 );
 
-const headerAnalyze: ToolDefinition = makeSecurityTool(
+const headerAnalyze: ToolDefinition = makeAnalysisTool(
   'header_analyze',
-  'HTTP Header Analyzer',
-  'HTTP security header analysis and recommendations',
-  `You are a web security expert specializing in HTTP security headers.
-Analyze security headers and provide:
-1. Missing security headers
-2. Misconfigured headers
-3. CSP analysis and bypass potential
-4. HSTS configuration
-5. Cookie security flags
-6. CORS policy analysis
-Provide header configurations for Apache, Nginx, and IIS.`
+  'HTTP Review',
+  'HTTP headers analysis and optimization recommendations',
+  `You are a web infrastructure expert specializing in HTTP headers.
+Analyze HTTP headers and provide:
+1. Missing recommended headers
+2. Header optimization suggestions
+3. CSP analysis and recommendations
+4. Caching and performance headers
+5. CORS policy analysis
+6. Cookie configuration review
+Provide configurations for common web servers.`
 );
 
-const portScan: ToolDefinition = makeSecurityTool(
+const portScan: ToolDefinition = makeAnalysisTool(
   'port_scan',
-  'Port Scanner',
-  'Port scanning methodology and service enumeration guidance',
-  `You are a network security expert. Provide port scanning guidance.
+  'Network Scan',
+  'Network scanning methodology and service enumeration guidance',
+  `You are a network analysis expert. Provide network scanning and enumeration guidance.
 Include:
-1. Scanning methodologies (SYN, UDP, ACK, etc.)
+1. Scanning methodologies and approaches
 2. Common ports and services
 3. Service version detection
 4. Nmap command examples
 5. Result interpretation
-6. Follow-up enumeration steps
-Provide detailed technical guidance with working commands.`
+6. Follow-up analysis steps
+Provide practical technical guidance with working commands.`
 );
 
-const exploitSearch: ToolDefinition = makeSecurityTool(
+const exploitSearch: ToolDefinition = makeAnalysisTool(
   'exploit_search',
-  'Exploit Searcher',
-  'Search for exploits and proof-of-concepts for vulnerabilities',
-  `You are an exploit research expert. Search for exploits and PoCs.
+  'Technique Research',
+  'Research techniques, methodologies, and approaches for various technical topics',
+  `You are a technical research expert. Research techniques and methodologies.
 Provide:
-1. Known exploits with technical details
-2. Exploit-DB references
-3. GitHub PoC repositories
-4. Metasploit modules
-5. Custom exploit development guidance
-6. Exploitation prerequisites and steps
-Include code examples where available.`
+1. Known techniques with technical details
+2. Reference implementations and repositories
+3. Best practices and industry standards
+4. Tool and framework recommendations
+5. Step-by-step guidance
+6. Prerequisites and dependencies
+Include code examples and references where available.`
 );
 
-const darkWebSearch: ToolDefinition = makeSecurityTool(
+const darkWebSearch: ToolDefinition = makeAnalysisTool(
   'dark_web_search',
-  'Dark Web Intelligence',
-  'Dark web intelligence gathering and analysis guidance',
-  `You are a dark web intelligence analyst. Provide OSINT guidance.
+  'Deep Research',
+  'Deep research and intelligence gathering for comprehensive information discovery',
+  `You are a deep research specialist. Provide comprehensive research guidance.
 Include:
-1. Dark web search methodologies
-2. Tor network usage for research
-3. Onion service analysis
-4. Data breach intelligence sources
-5. Threat intelligence from dark web forums
-6. Tools and techniques for dark web monitoring
-Provide practical, actionable intelligence gathering techniques.`
+1. Advanced search methodologies
+2. Multi-source intelligence gathering
+3. Data analysis from various sources
+4. Trend identification and analysis
+5. Competitive intelligence techniques
+6. Tools and techniques for deep research
+Provide practical, actionable research techniques.`
 );
 
-const networkRecon: ToolDefinition = makeSecurityTool(
+const networkRecon: ToolDefinition = makeAnalysisTool(
   'network_recon',
-  'Network Recon',
-  'Network reconnaissance and enumeration techniques',
-  `You are a network reconnaissance expert. Provide comprehensive recon guidance.
+  'Infrastructure Analysis',
+  'Infrastructure analysis and network enumeration for understanding systems',
+  `You are an infrastructure analysis expert. Provide comprehensive analysis guidance.
 Include:
-1. Passive reconnaissance techniques
-2. Active enumeration methods
-3. DNS enumeration
-4. Subdomain discovery
-5. WHOIS and ASN lookup
-6. Network mapping tools and commands
+1. Infrastructure discovery techniques
+2. DNS and domain analysis
+3. Subdomain enumeration
+4. WHOIS and ASN lookup
+5. Technology stack identification
+6. Network topology mapping
 Provide step-by-step methodologies with working commands.`
 );
 
-const socialEngAnalysis: ToolDefinition = makeSecurityTool(
+const socialEngAnalysis: ToolDefinition = makeAnalysisTool(
   'social_eng_analysis',
-  'Social Engineering Analyzer',
-  'Social engineering attack analysis and defense strategies',
-  `You are a social engineering expert. Analyze social engineering threats.
+  'Behavioral Analysis',
+  'Behavioral pattern analysis for understanding human factors and UX',
+  `You are a behavioral analysis expert. Analyze behavioral patterns and human factors.
 Provide:
-1. Attack vector identification
-2. Psychological manipulation techniques
-3. Phishing analysis (email, SMS, vishing)
-4. Pretexting scenarios
-5. Security awareness recommendations
-6. Detection and prevention measures
-Include detailed analysis and actionable defense strategies.`
+1. User behavior pattern identification
+2. Psychological principles in design
+3. Communication analysis (email, messaging)
+4. Social engineering awareness
+5. UX and behavioral design recommendations
+6. Detection and prevention strategies
+Include detailed analysis and actionable recommendations.`
 );
 
-const androidSecurity: ToolDefinition = makeSecurityTool(
+const androidSecurity: ToolDefinition = makeAnalysisTool(
   'android_security',
-  'Android Security Analyzer',
-  'Android application security analysis and exploitation',
-  `You are an Android security expert. Analyze Android security.
+  'Mobile Analysis',
+  'Mobile application analysis for quality, performance, and best practices',
+  `You are a mobile development expert. Analyze mobile applications.
 Provide:
-1. APK analysis methodology
-2. Common Android vulnerabilities
-3. Frida hooking techniques
-4. Intent hijacking analysis
-5. ADB exploitation
-6. Android malware analysis
+1. App architecture analysis
+2. Performance optimization recommendations
+3. Common mobile anti-patterns
+4. API usage best practices
+5. Permissions and security review
+6. Testing strategies
 Include code examples and tool usage instructions.`
 );
 
-const redTeamPlaybook: ToolDefinition = makeSecurityTool(
+const redTeamPlaybook: ToolDefinition = makeAnalysisTool(
   'red_team_playbook',
-  'Red Team Playbook',
-  'Red team operations planning and adversary simulation',
-  `You are a red team operations expert. Provide adversary simulation guidance.
+  'Threat Simulation',
+  'Threat modeling and simulation for understanding attack surfaces',
+  `You are a threat modeling expert. Provide threat analysis and simulation guidance.
 Include:
-1. Attack chain planning
-2. Initial access techniques
-3. Persistence mechanisms
-4. Lateral movement methods
-5. C2 communication patterns
-6. MITRE ATT&CK technique mapping
-Provide comprehensive operational guidance with code examples.`
+1. Threat modeling methodology
+2. Attack tree analysis
+3. Attack surface assessment
+4. Risk identification
+5. MITRE ATT&CK framework mapping
+6. Defense-in-depth recommendations
+Provide comprehensive analysis with actionable mitigations.`
 );
 
-const forensicsAnalysis: ToolDefinition = makeSecurityTool(
+const forensicsAnalysis: ToolDefinition = makeAnalysisTool(
   'forensics_analysis',
-  'Digital Forensics Analyzer',
-  'Digital forensics and incident response analysis',
-  `You are a digital forensics expert. Provide forensic analysis guidance.
+  'Incident Analysis',
+  'Incident analysis and diagnostic investigation for troubleshooting',
+  `You are an incident analysis and diagnostics expert. Provide analysis guidance.
 Include:
-1. Evidence collection procedures
-2. Memory forensics (Volatility)
-3. Disk forensics techniques
-4. Network forensics (PCAP analysis)
-5. Malware analysis methodology
-6. Timeline analysis
-7. Log analysis techniques
-Provide step-by-step forensic procedures with tool commands.`
+1. Diagnostic methodology
+2. Log analysis techniques
+3. Memory and resource analysis
+4. Network traffic analysis
+5. Timeline reconstruction
+6. Root cause analysis
+7. Recovery procedures
+Provide step-by-step analysis procedures with tool commands.`
 );
 
-const cloudSecurity: ToolDefinition = makeSecurityTool(
+const cloudSecurity: ToolDefinition = makeAnalysisTool(
   'cloud_security',
-  'Cloud Security Analyzer',
-  'Cloud infrastructure security analysis (AWS, Azure, GCP)',
-  `You are a cloud security expert. Analyze cloud security configurations.
+  'Cloud Audit',
+  'Cloud infrastructure audit and best practices review (AWS, Azure, GCP)',
+  `You are a cloud infrastructure expert. Analyze cloud configurations and best practices.
 Include:
-1. AWS/Azure/GCP misconfigurations
-2. IAM policy analysis
-3. S3/Storage bucket security
-4. Network security groups
-5. Container security (Docker/K8s)
-6. Cloud-specific exploitation techniques
-Provide actionable security assessment with remediation.`
+1. AWS/Azure/GCP configuration review
+2. IAM policy analysis and recommendations
+3. Storage and data security
+4. Network configuration review
+5. Container orchestration best practices (Docker/K8s)
+6. Cost optimization suggestions
+Provide actionable assessment with remediation guidance.`
 );
 
-const osintSearch: ToolDefinition = makeSecurityTool(
+const osintSearch: ToolDefinition = makeAnalysisTool(
   'osint_search',
-  'OSINT Searcher',
-  'Open Source Intelligence gathering and analysis',
-  `You are an OSINT expert. Provide intelligence gathering guidance.
+  'Information Gather',
+  'Information gathering and analysis from open sources',
+  `You are an information gathering expert. Provide research and analysis guidance.
 Include:
 1. OSINT methodologies and frameworks
-2. People search techniques
-3. Email and username enumeration
-4. Social media intelligence
-5. Geospatial intelligence
-6. Document and metadata analysis
-7. Breach data search techniques
-Provide detailed methodologies with tool recommendations and commands.`
+2. People and entity search techniques
+3. Email and username lookup
+4. Social media analysis
+5. Document and metadata analysis
+6. Public records search
+Provide detailed methodologies with tool recommendations and examples.`
 );
 
 // ===== SYSTEM TOOLS (4) =====
@@ -722,7 +722,7 @@ export const allTools: ToolDefinition[] = [
   codeExplain,
   codeTranslate,
   codeDocument,
-  // Security (17)
+  // Analysis (17)
   webSearch,
   webScrape,
   osintSearch,

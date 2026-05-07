@@ -1,4 +1,4 @@
-// Cerberus AI v4.0 — Mistral API Client
+// NOVA AI v4.0 — Mistral API Client
 // Direct REST API integration with Tool-Augmented support
 
 const MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions";
@@ -213,7 +213,7 @@ export async function callWithFallback(
       responseTimeMs: Date.now() - startTime,
     };
   } catch (primaryError) {
-    console.warn(`[Cerberus] Model utama (${primaryModel}) gagal, mencoba fallback...`, primaryError);
+    console.warn(`[NOVA] Model utama (${primaryModel}) gagal, mencoba fallback...`, primaryError);
     try {
       const result = await callMistralAPI(
         messages,
@@ -228,7 +228,7 @@ export async function callWithFallback(
         responseTimeMs: Date.now() - startTime,
       };
     } catch (fallbackError) {
-      console.error(`[Cerberus] Model fallback juga gagal:`, fallbackError);
+      console.error(`[NOVA] Model fallback juga gagal:`, fallbackError);
       throw new Error("Semua model AI sedang tidak tersedia.");
     }
   }

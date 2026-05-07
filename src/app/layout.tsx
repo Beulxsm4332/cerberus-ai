@@ -14,26 +14,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cerberus AI v3.0 — Multi-Agent Cybersecurity Platform",
+  title: "NOVA AI — Super Agent",
   description:
-    "Platform multi-agent AI keamanan siber generasi 2026. 6 agent spesialis dengan 35+ skill terintegrasi dari 9 repo keamanan terkemuka: pentest-agents, communitytools, WebHackersWeapons, vulpine, SynthAPT, AgenticART, dan lainnya.",
+    "Super AI Agent untuk coding, analisis, riset, dan konten. 6 agent spesialis dengan 32+ tools terintegrasi, function calling, dan meta-learning. Powered by Mistral AI.",
   keywords: [
-    "Cerberus AI",
-    "cybersecurity",
+    "NOVA AI",
+    "AI agent",
+    "coding assistant",
+    "code generation",
+    "super agent",
     "multi-agent",
-    "AI",
-    "pentesting",
-    "OSINT",
-    "exploit",
-    "red team",
-    "dark web",
-    "bug bounty",
-    "vulnerability testing",
+    "tool-augmented LLM",
     "Mistral AI",
   ],
-  authors: [{ name: "Kak Sal & Agent Salbjork" }],
+  authors: [{ name: "NOVA AI Team" }],
   icons: {
-    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐺</text></svg>",
+    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌟</text></svg>",
   },
 };
 
@@ -45,7 +41,7 @@ export default function RootLayout({
   return (
     <html lang="id" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-cerberus-bg text-cerberus-text`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-nova-bg text-nova-text`}
       >
         {children}
         <Toaster />
