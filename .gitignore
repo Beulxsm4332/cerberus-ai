@@ -57,3 +57,5 @@ server.log
 /skills/tools/
 
 # Tools repos (large, cloned at runtime)
+tools/
+# Cloned via setup.sh
