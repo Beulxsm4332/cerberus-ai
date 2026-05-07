@@ -37,6 +37,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 // ===== TYPES =====
+interface ToolCallInfo {
+  toolName: string;
+  arguments: Record<string, any>;
+  result: string;
+  status: string;
+  duration?: number;
+}
+
 interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -47,12 +55,17 @@ interface Message {
     emoji: string;
     color: string;
     role: string;
+    description?: string;
   };
   model?: string;
   tokens?: string;
   responseTimeMs?: number;
   timestamp: number;
   isStreaming?: boolean;
+  toolCalls?: ToolCallInfo[];
+  iterations?: number;
+  isThinking?: boolean;
+  activeTool?: string;
 }
 
 interface AgentInfo {
@@ -95,12 +108,12 @@ const QUICK_COMMANDS: QuickCommand[] = [
 ];
 
 const DEFAULT_AGENTS: AgentInfo[] = [
-  { id: 'onyx-overseer', name: 'Onyx Overseer', emoji: '🐺', color: '#D4AF37', role: 'Master Orchestrator', description: 'Otak utama Cerberus. AI Threat Testing, Autopilot, 250+ tool catalog.' },
-  { id: 'phantom-executor', name: 'Phantom Executor', emoji: '💀', color: '#DC143C', role: 'Offensive Security', description: '20+ skills: XSS/SQLi/RCE/SSRF/Auth/API/Cloud/Mobile/Blockchain exploitation.' },
-  { id: 'oracle-intel', name: 'Oracle Intelligence', emoji: '🔮', color: '#6A0DAD', role: 'OSINT & Research', description: '8+ skills: Recon, OSINT, Dark Web (3 crawlers), Writeup Search, Bug Bounty.' },
-  { id: 'wraith-stealth', name: 'Wraith Stealth', emoji: '👻', color: '#2ECC71', role: 'Evasion & Red Team', description: 'SynthAPT adversary sim, DFIR, Firewall Review, Evasion techniques.' },
-  { id: 'harbinger-social', name: 'Harbinger Social', emoji: '🎭', color: '#E91E63', role: 'Social Engineering', description: 'Phishing, pretexting, vishing, security awareness assessment.' },
-  { id: 'swift-responder', name: 'Swift Responder', emoji: '⚡', color: '#00BCD4', role: 'Fast Response & FAQ', description: 'Agent ringan untuk respons instan dan FAQ.' },
+  { id: 'cerberus-core', name: 'Cerberus Core', emoji: '🐺', color: '#D4AF37', role: 'Master Coding Agent', description: 'Tool-Augmented LLM: Coding, security, web search, system ops.' },
+  { id: 'phantom-security', name: 'Phantom Security', emoji: '💀', color: '#DC143C', role: 'Offensive Security', description: 'Full-spectrum security: XSS/SQLi/RCE/exploit dev/red team.' },
+  { id: 'oracle-research', name: 'Oracle Research', emoji: '🔮', color: '#6A0DAD', role: 'OSINT & Research', description: 'Web search, OSINT, dark web intelligence, research.' },
+  { id: 'wraith-stealth', name: 'Wraith Stealth', emoji: '👻', color: '#2ECC71', role: 'Evasion & Red Team', description: 'Adversary simulation, evasion, DFIR, forensics.' },
+  { id: 'harbinger-social', name: 'Harbinger Social', emoji: '🎭', color: '#E91E63', role: 'Social Engineering', description: 'Phishing analysis, social engineering, awareness.' },
+  { id: 'swift-faq', name: 'Swift FAQ', emoji: '⚡', color: '#00BCD4', role: 'Fast Response & FAQ', description: 'Lightweight agent for quick responses and FAQ.' },
 ];
 
 // ===== LOCAL STORAGE HELPERS =====
@@ -447,7 +460,7 @@ export default function Home() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message: text,
-            agent: activeAgent.id === 'onyx-overseer' ? undefined : activeAgent.id,
+            agent: activeAgent.id === 'cerberus-core' ? undefined : activeAgent.id,
             history,
             stream: true,
           }),
@@ -493,6 +506,36 @@ export default function Home() {
                   }));
                 } else if (parsed.type === 'model') {
                   usedModel = parsed.data;
+                } else if (parsed.type === 'thinking') {
+                  setSessions(prev => prev.map(session => {
+                    if (session.id !== sessionId) return session;
+                    return {
+                      ...session,
+                      messages: session.messages.map(m =>
+                        m.id === aiMessageId ? { ...m, isThinking: true, activeTool: undefined } : m
+                      ),
+                    };
+                  }));
+                } else if (parsed.type === 'tool_start') {
+                  setSessions(prev => prev.map(session => {
+                    if (session.id !== sessionId) return session;
+                    return {
+                      ...session,
+                      messages: session.messages.map(m =>
+                        m.id === aiMessageId ? { ...m, isThinking: false, activeTool: parsed.tool } : m
+                      ),
+                    };
+                  }));
+                } else if (parsed.type === 'tool_result') {
+                  setSessions(prev => prev.map(session => {
+                    if (session.id !== sessionId) return session;
+                    return {
+                      ...session,
+                      messages: session.messages.map(m =>
+                        m.id === aiMessageId ? { ...m, activeTool: undefined } : m
+                      ),
+                    };
+                  }));
                 } else if (parsed.type === 'token') {
                   accumulated += parsed.data;
                   setSessions(prev => prev.map(session => {
@@ -500,7 +543,7 @@ export default function Home() {
                     return {
                       ...session,
                       messages: session.messages.map(m =>
-                        m.id === aiMessageId ? { ...m, content: accumulated } : m
+                        m.id === aiMessageId ? { ...m, content: accumulated, isThinking: false, activeTool: undefined } : m
                       ),
                     };
                   }));
@@ -508,6 +551,17 @@ export default function Home() {
                   totalTokens = parsed.data.totalTokens;
                   responseTimeMs = parsed.data.responseTimeMs;
                   usedModel = parsed.data.model || usedModel;
+                  if (parsed.data.toolCalls && parsed.data.toolCalls.length > 0) {
+                    setSessions(prev => prev.map(session => {
+                      if (session.id !== sessionId) return session;
+                      return {
+                        ...session,
+                        messages: session.messages.map(m =>
+                          m.id === aiMessageId ? { ...m, toolCalls: parsed.data.toolCalls, iterations: parsed.data.iterations } : m
+                        ),
+                      };
+                    }));
+                  }
                 } else if (parsed.type === 'error') {
                   accumulated += `\n\n❌ **Error:** ${parsed.data}`;
                 }
@@ -874,7 +928,7 @@ export default function Home() {
                   <div className="flex items-center gap-2 px-2">
                     <AlertTriangle size={12} className="text-cerberus-gold" />
                     <p className="text-[10px] text-cerberus-text-dim">
-                      Hanya untuk riset keamanan edukatif
+                      Tool-Augmented LLM • 32+ Tools • Function Calling
                     </p>
                   </div>
                 </div>
@@ -920,16 +974,16 @@ export default function Home() {
                     {/* Version badge */}
                     <div className="flex items-center justify-center gap-2">
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cerberus-crimson/15 text-cerberus-crimson border border-cerberus-crimson/25">
-                        v3.0 Cerberus
+                        v4.0
                       </span>
                       <span className="text-[10px] text-cerberus-text-dim">
-                        35+ Skills • 9 Sources • Powered by Mistral AI
+                        Tool-Augmented LLM • Function Calling • Meta-Learning
                       </span>
                     </div>
 
                     {/* Stats */}
                     <p className="text-[11px] text-cerberus-text-dim">
-                      6 Agents • 35+ Skills • 9 Security Repos • 250+ Tools
+                      6 Agents • 32+ Executable Tools • 4 Categories • Mistral AI
                     </p>
                   </motion.div>
 
@@ -940,8 +994,8 @@ export default function Home() {
                     transition={{ delay: 0.3, duration: 0.5 }}
                     className="text-xs text-cerberus-text-dim leading-relaxed"
                   >
-                    Platform keamanan siber generasi 2026 dengan 6 AI agent dan 35+ skill dari 9 repo keamanan terkemuka.
-                    Mulai dari recon, vuln testing, exploit dev, red team, dark web OSINT, hingga mobile security.
+                    Tool-Augmented LLM system dengan function calling, 32+ executable tools, dan meta-learning.
+                    Coding, security analysis, OSINT, red team, dan web search — semua dengan tool grounding.
                   </motion.p>
 
                   <motion.div
@@ -951,15 +1005,10 @@ export default function Home() {
                     className="flex flex-wrap items-center justify-center gap-1.5"
                   >
                     {[
-                      { emoji: '🔍', label: 'Recon & OSINT', count: 8, color: '#6A0DAD' },
-                      { emoji: '🌐', label: 'Web Security', count: 6, color: '#FF6B35' },
-                      { emoji: '💀', label: 'Exploitation', count: 4, color: '#DC143C' },
-                      { emoji: '👻', label: 'Evasion', count: 3, color: '#2ECC71' },
-                      { emoji: '☁️', label: 'Cloud', count: 2, color: '#2196F3' },
-                      { emoji: '🕸️', label: 'Dark Web', count: 3, color: '#37474F' },
-                      { emoji: '📱', label: 'Mobile', count: 1, color: '#00BCD4' },
-                      { emoji: '🔴', label: 'Red Team', count: 1, color: '#F44336' },
-                      { emoji: '🧠', label: 'AI Security', count: 1, color: '#00E676' },
+                      { emoji: '💻', label: 'Coding', count: 8, color: '#00E676' },
+                      { emoji: '🛡️', label: 'Security', count: 17, color: '#DC143C' },
+                      { emoji: '⚙️', label: 'System', count: 4, color: '#FF6B35' },
+                      { emoji: '🧠', label: 'Meta', count: 3, color: '#6A0DAD' },
                     ].map((cat) => (
                       <span
                         key={cat.label}
@@ -1085,8 +1134,25 @@ export default function Home() {
                         )}
 
                         {/* Message content */}
+                        {msg.isThinking && msg.activeTool && (
+                          <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-lg bg-cerberus-crimson/10 border border-cerberus-crimson/20">
+                            <div className="w-3 h-3 rounded-full bg-cerberus-crimson animate-pulse" />
+                            <span className="text-xs text-cerberus-crimson">
+                              Using {msg.activeTool}...
+                            </span>
+                          </div>
+                        )}
+                        {msg.isThinking && !msg.activeTool && (
+                          <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-lg bg-cerberus-purple/10 border border-cerberus-purple/20">
+                            <div className="w-3 h-3 rounded-full bg-cerberus-purple animate-pulse" />
+                            <span className="text-xs text-cerberus-purple">
+                              Agent is thinking...
+                            </span>
+                          </div>
+                        )}
+
                         {msg.role === 'assistant' || msg.role === 'system' ? (
-                          <MessageContent content={msg.content} isStreaming={msg.isStreaming} />
+                          <MessageContent content={msg.content} isStreaming={msg.isStreaming && !msg.isThinking} />
                         ) : (
                           <p className="text-sm leading-relaxed">{msg.content}</p>
                         )}
@@ -1127,7 +1193,41 @@ export default function Home() {
                             {msg.tokens && Number(msg.tokens) > 0 && (
                               <span>📝 ~{msg.tokens} tokens</span>
                             )}
+                            {msg.iterations && msg.iterations > 1 && (
+                              <span>🔄 {msg.iterations} iterations</span>
+                            )}
+                            {msg.toolCalls && msg.toolCalls.length > 0 && (
+                              <span>🔧 {msg.toolCalls.length} tools</span>
+                            )}
                           </div>
+                        )}
+
+                        {/* Tool calls collapsible */}
+                        {msg.toolCalls && msg.toolCalls.length > 0 && !msg.isStreaming && (
+                          <details className="mt-2">
+                            <summary className="text-[10px] text-cerberus-text-dim cursor-pointer hover:text-cerberus-gold transition-colors flex items-center gap-1">
+                              <Wrench size={10} />
+                              Tool Calls ({msg.toolCalls.length})
+                            </summary>
+                            <div className="mt-1 space-y-1 max-h-48 overflow-y-auto cerberus-scrollbar-slim">
+                              {msg.toolCalls.map((tc, i) => (
+                                <div key={i} className="px-2 py-1.5 rounded-md bg-cerberus-surface/50 border border-cerberus-border/50 text-[10px]">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={tc.status === 'completed' ? 'text-emerald-400' : 'text-red-400'}>
+                                      {tc.status === 'completed' ? '✓' : '✗'}
+                                    </span>
+                                    <span className="font-mono text-cerberus-gold">{tc.toolName}</span>
+                                    {tc.duration && (
+                                      <span className="text-cerberus-text-dim ml-auto">{tc.duration}ms</span>
+                                    )}
+                                  </div>
+                                  {tc.result && (
+                                    <pre className="mt-1 text-cerberus-text-dim overflow-x-auto whitespace-pre-wrap max-h-20 opacity-70">{tc.result.slice(0, 300)}{tc.result.length > 300 ? '...' : ''}</pre>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </details>
                         )}
 
                         {/* Timestamp */}

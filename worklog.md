@@ -1,92 +1,77 @@
----
-Task ID: 1
-Agent: Super Z (Main)
-Task: Analisis dan rebuild Cerberus AI project
+# Cerberus AI v4.0 Upgrade Worklog
 
-Work Log:
-- Clone dan analisis struktur project Cerberus-AI dari zip upload
-- Identifikasi 6 masalah utama: router file naming, SSE/JSON mismatch, routing bug, hardcoded localhost, Mistral connection, design
-- Baca semua source files: agents, tools, config, backend, frontend
-- Identifikasi arsitektur: Python backend (FastAPI) + Next.js frontend
+## Date: 2025-01-XX
+## Upgrade: v3.0 (Static Skills) → v4.0 (Tool-Augmented LLM)
 
-Stage Summary:
-- Project memiliki 6 agent spesialis dengan config lengkap
-- Backend menggunakan smolagents library + Mistral AI
-- Frontend Next.js dengan tema gelap dasar
-- Masalah utama di koneksi backend-frontend
+### Build Result: ✅ SUCCESS
+- `npx next build` — Compiled successfully
+- `bun run lint` — No errors
+- 32 tools registered at runtime
 
 ---
-Task ID: 2
-Agent: full-stack-developer (subagent)
-Task: Bangun ulang sebagai Next.js 16 fullstack app
 
-Work Log:
-- Setup Next.js 16 project dengan fullstack-dev skill
-- Buat lib/agents.ts: 6 agent definitions dengan keyword routing
-- Buat lib/mistral.ts: Mistral REST API client dengan fallback
-- Buat api/chat/route.ts: POST endpoint untuk chat + GET untuk agent list
-- Rebuild page.tsx: Chat UI lengkap dengan sidebar, particles, typing indicator
-- Update globals.css: Mystical dark theme (crimson/gold/purple)
-- Update layout.tsx: Dark mode metadata
-- Verifikasi: API chat berhasil (200 OK)
+### Files Created (10 new files):
 
-Stage Summary:
-- Aplikasi berfungsi penuh dengan Mistral AI integration
-- 6 agent routing berdasarkan keyword scoring
-- Desain mistikal dengan floating particles, grid overlay, glow effects
-- Mobile responsive, markdown rendering, typing indicator
+#### Phase 1: Core Tool Infrastructure
+1. **`src/lib/tools/types.ts`** — Core TypeScript types for the Tool-Augmented LLM system (ToolDefinition, ToolCall, ToolResult, ToolContext, AgentDefinition, MCPTool, LearningExperience, MetaLearnedSkill)
+
+2. **`src/lib/tools/registry.ts`** — Tool Registry singleton with register/get/search/discover/validate/format operations. Supports agent-to-tool mapping and category filtering.
+
+3. **`src/lib/tools/definitions.ts`** — 32 executable ToolDefinition objects organized into 4 categories:
+   - **Coding (8)**: code_generate, code_analyze, code_review, code_debug, code_refactor, code_explain, code_translate, code_document
+   - **Security (17)**: web_search, web_scrape, osint_search, security_scan, vuln_check, xss_analyze, sqli_analyze, header_analyze, port_scan, exploit_search, dark_web_search, network_recon, social_eng_analysis, android_security, red_team_playbook, forensics_analysis, cloud_security
+   - **System (4)**: file_read, file_write, file_list, command_execute
+   - **Meta (3)**: tool_discover, reflect, skill_learn
+
+4. **`src/lib/tools/executor.ts`** — Tool execution engine with parameter validation, execution with error handling, and LLM-friendly formatting.
+
+5. **`src/lib/tools/parser.ts`** — Response parser that extracts tool calls from LLM output using `<tool_call|tool_id|{params}>` format.
+
+#### Phase 2: MCP Client
+6. **`src/lib/mcp/client.ts`** — MCP (Model Context Protocol) client placeholder for dynamic tool discovery from external servers.
+
+#### Phase 3: Meta-Learning
+7. **`src/lib/meta-learning/store.ts`** — In-memory store for learning experiences and self-evolution. Records task outcomes, builds relevant experience context, and generates self-evolution summaries.
+
+### Files Modified (5 files):
+
+8. **`src/lib/agents.ts`** — Complete rewrite. 6 agents with tool access lists, new Indonesian system prompts emphasizing coding capability and tool usage. No security guardrails. New agent names (Cerberus Core, Phantom Security, Oracle Research, Wraith Stealth, Harbinger Social, Swift FAQ).
+
+9. **`src/lib/mistral.ts`** — Added `callMistralWithTools()` and `streamMistralWithTools()` functions that embed tool definitions into system prompts. Kept all existing functions.
+
+10. **`src/app/api/chat/route.ts`** — Complete rewrite with Tool-Augmented pipeline: agent routing → tool context injection → agent loop (max 5 iterations) → tool call parsing → tool execution → result synthesis. Supports both streaming (SSE) and non-streaming. New SSE events: thinking, tool_start, tool_result.
+
+11. **`src/app/page.tsx`** — Updated frontend with:
+    - New ToolCallInfo and updated Message interfaces
+    - New agent names and descriptions for v4.0
+    - Tool execution indicators (animated "Using web_search..." during tool calls)
+    - "Agent is thinking..." animation during LLM processing
+    - Collapsible tool call history in messages
+    - Iterations and tool count in metrics bar
+    - Updated welcome screen (v4.0 badge, tool categories, description)
+
+12. **`src/app/api/tools/route.ts`** — New API endpoint. GET /api/tools returns all registered tools with filtering by category, agent, and search query.
 
 ---
-Task ID: 5
-Agent: Super Z (Main)
-Task: Konfigurasi deployment HuggingFace Spaces
 
-Work Log:
-- Buat Dockerfile untuk HuggingFace Spaces deployment
-- Buat .env.example dengan dokumentasi variables
-- Update .gitignore untuk exclude .env tapi include .env.example
-- Buat README.md lengkap dengan badges dan dokumentasi
+### Architecture Summary:
 
-Stage Summary:
-- Dockerfile siap untuk HuggingFace Spaces (Docker SDK)
-- README.md dengan tabel agent, tech stack, dan panduan deployment
+```
+User Message → Agent Router → Tool Context Builder → Agent Loop:
+  ┌─────────────────────────────────────────────────┐
+  │ 1. Call LLM with system prompt + tools          │
+  │ 2. Parse response for <tool_call|...> patterns   │
+  │ 3. If tool calls found:                         │
+  │    a. Execute each tool via Tool Registry        │
+  │    b. Add tool results to conversation           │
+  │    c. Loop back to step 1                        │
+  │ 4. If no tool calls: return final answer        │
+  └─────────────────────────────────────────────────┘
+```
 
----
-Task ID: 6
-Agent: Super Z (Main)
-Task: Push ke GitHub
-
-Work Log:
-- Git init + remote setup ke Beulxsm4332/cerberus-ai
-- Stage semua file kecuali .env (berisi secrets)
-- Commit dengan pesan deskriptif
-- Force push ke main (80 files, 10225 insertions)
-
-Stage Summary:
-- Berhasil push ke https://github.com/Beulxsm4332/cerberus-ai
-- .env tidak di-commit (aman)
-- .env.example tersedia untuk referensi
----
-Task ID: 1
-Agent: Main Agent
-Task: Fix git divergent branches, clone repos, integrate skills, push to GitHub
-
-Work Log:
-- Fixed git divergent branches (repos were at same commit, user had local changes)
-- Cloned 9/10 pentesting repos (GnomeMan4201/owner failed - private repo)
-- Analyzed all 9 repos using Explore agent (pentest-agents, WebHackersWeapons, vulpine, communitytools, SynthAPT, darkwebspyder, AgenticART, Rio-, darkdump)
-- Created src/lib/skills.ts with 35+ skill definitions across 14 categories
-- Updated src/lib/agents.ts with skill-aware system prompts for all 6 agents
-- Created src/app/api/skills/route.ts API endpoint (search, filter, stats)
-- Updated src/app/page.tsx with skill categories, 8 quick commands, v3.0 branding
-- Updated src/app/layout.tsx metadata
-- Created setup-tools.sh for automated tool cloning
-- Built and verified Next.js production build
-- Pushed 3 commits to GitHub (9758afa, 4396077, 4080f3c)
-
-Stage Summary:
-- Cerberus AI upgraded from v2.1 Phoenix to v3.0 Cerberus
-- 35+ skills integrated from 9 security repositories
-- All code builds successfully
-- Pushed to GitHub: https://github.com/Beulxsm4332/cerberus-ai
-
+### Key Technical Decisions:
+- Tool calling via prompt-based pattern (not native function calling) for cross-model compatibility
+- In-memory meta-learning (no database dependency)
+- z-ai-web-dev-sdk for web search/scrape (server-side only)
+- Mistral API for AI-powered code generation and security analysis tools
+- Agent loop max 5 iterations to prevent infinite loops
