@@ -26,6 +26,11 @@ import {
   Plus,
   MessageSquare,
   Clock,
+  Wrench,
+  Target,
+  Flame,
+  Globe,
+  Database,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -80,18 +85,21 @@ const MAX_MESSAGES_PER_SESSION = 100;
 
 const QUICK_COMMANDS: QuickCommand[] = [
   { icon: <Search size={14} />, label: 'OSINT Search', prefix: 'Cari informasi tentang ', color: '#6A0DAD' },
-  { icon: <Skull size={14} />, label: 'Generate Code', prefix: 'Buatkan kode untuk ', color: '#DC143C' },
-  { icon: <Shield size={14} />, label: 'Bypass Technique', prefix: 'Cara bypass ', color: '#2ECC71' },
-  { icon: <Drama size={14} />, label: 'Social Engineering', prefix: 'Buat skenario ', color: '#E91E63' },
-  { icon: <Ghost size={14} />, label: 'Dark Web Scan', prefix: 'Cari di dark web tentang ', color: '#D4AF37' },
+  { icon: <Skull size={14} />, label: 'Exploit Dev', prefix: 'Buatkan kode untuk ', color: '#DC143C' },
+  { icon: <Shield size={14} />, label: 'Vuln Scan', prefix: 'Cara bypass ', color: '#2ECC71' },
+  { icon: <Drama size={14} />, label: 'Social Eng', prefix: 'Buat skenario ', color: '#E91E63' },
+  { icon: <Ghost size={14} />, label: 'Dark Web', prefix: 'Cari di dark web tentang ', color: '#D4AF37' },
+  { icon: <Wrench size={14} />, label: 'Red Team', prefix: 'Simulasikan serangan ', color: '#F44336' },
+  { icon: <Target size={14} />, label: 'Bug Bounty', prefix: 'Bantuan bug bounty untuk ', color: '#FF6B35' },
+  { icon: <Flame size={14} />, label: 'Android Exploit', prefix: 'Analisis APK ', color: '#00BCD4' },
 ];
 
 const DEFAULT_AGENTS: AgentInfo[] = [
-  { id: 'onyx-overseer', name: 'Onyx Overseer', emoji: '🐺', color: '#D4AF37', role: 'Master Orchestrator', description: 'Otak utama Cerberus. Menganalisis dan mengkoordinasi semua agent.' },
-  { id: 'phantom-executor', name: 'Phantom Executor', emoji: '💀', color: '#DC143C', role: 'Code & Exploit Specialist', description: 'Spesialis pengembangan kode exploit dan payload.' },
-  { id: 'oracle-intel', name: 'Oracle Intelligence', emoji: '🔮', color: '#6A0DAD', role: 'OSINT & Research Specialist', description: 'Spesialis pengumpulan informasi dan riset keamanan.' },
-  { id: 'wraith-stealth', name: 'Wraith Stealth', emoji: '👻', color: '#2ECC71', role: 'Evasion & Stealth Specialist', description: 'Spesialis teknik anti-deteksi dan stealth.' },
-  { id: 'harbinger-social', name: 'Harbinger Social', emoji: '🎭', color: '#E91E63', role: 'Social Engineering Specialist', description: 'Spesialis rekayasa sosial dan phishing.' },
+  { id: 'onyx-overseer', name: 'Onyx Overseer', emoji: '🐺', color: '#D4AF37', role: 'Master Orchestrator', description: 'Otak utama Cerberus. AI Threat Testing, Autopilot, 250+ tool catalog.' },
+  { id: 'phantom-executor', name: 'Phantom Executor', emoji: '💀', color: '#DC143C', role: 'Offensive Security', description: '20+ skills: XSS/SQLi/RCE/SSRF/Auth/API/Cloud/Mobile/Blockchain exploitation.' },
+  { id: 'oracle-intel', name: 'Oracle Intelligence', emoji: '🔮', color: '#6A0DAD', role: 'OSINT & Research', description: '8+ skills: Recon, OSINT, Dark Web (3 crawlers), Writeup Search, Bug Bounty.' },
+  { id: 'wraith-stealth', name: 'Wraith Stealth', emoji: '👻', color: '#2ECC71', role: 'Evasion & Red Team', description: 'SynthAPT adversary sim, DFIR, Firewall Review, Evasion techniques.' },
+  { id: 'harbinger-social', name: 'Harbinger Social', emoji: '🎭', color: '#E91E63', role: 'Social Engineering', description: 'Phishing, pretexting, vishing, security awareness assessment.' },
   { id: 'swift-responder', name: 'Swift Responder', emoji: '⚡', color: '#00BCD4', role: 'Fast Response & FAQ', description: 'Agent ringan untuk respons instan dan FAQ.' },
 ];
 
@@ -912,16 +920,16 @@ export default function Home() {
                     {/* Version badge */}
                     <div className="flex items-center justify-center gap-2">
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cerberus-crimson/15 text-cerberus-crimson border border-cerberus-crimson/25">
-                        v2.1 Phoenix
+                        v3.0 Cerberus
                       </span>
                       <span className="text-[10px] text-cerberus-text-dim">
-                        Powered by Mistral AI
+                        35+ Skills • 9 Sources • Powered by Mistral AI
                       </span>
                     </div>
 
                     {/* Stats */}
                     <p className="text-[11px] text-cerberus-text-dim">
-                      6 Agents • 5 Models • Streaming
+                      6 Agents • 35+ Skills • 9 Security Repos • 250+ Tools
                     </p>
                   </motion.div>
 
@@ -932,16 +940,48 @@ export default function Home() {
                     transition={{ delay: 0.3, duration: 0.5 }}
                     className="text-xs text-cerberus-text-dim leading-relaxed"
                   >
-                    Sistem keamanan siber berbasis AI dengan 6 agent spesialis.
-                    Ketik pesan Anda atau gunakan perintah cepat di bawah untuk memulai.
+                    Platform keamanan siber generasi 2026 dengan 6 AI agent dan 35+ skill dari 9 repo keamanan terkemuka.
+                    Mulai dari recon, vuln testing, exploit dev, red team, dark web OSINT, hingga mobile security.
                   </motion.p>
 
-                  {/* Quick Commands */}
+                  <motion.div
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.4, duration: 0.5 }}
+                    className="flex flex-wrap items-center justify-center gap-1.5"
+                  >
+                    {[
+                      { emoji: '🔍', label: 'Recon & OSINT', count: 8, color: '#6A0DAD' },
+                      { emoji: '🌐', label: 'Web Security', count: 6, color: '#FF6B35' },
+                      { emoji: '💀', label: 'Exploitation', count: 4, color: '#DC143C' },
+                      { emoji: '👻', label: 'Evasion', count: 3, color: '#2ECC71' },
+                      { emoji: '☁️', label: 'Cloud', count: 2, color: '#2196F3' },
+                      { emoji: '🕸️', label: 'Dark Web', count: 3, color: '#37474F' },
+                      { emoji: '📱', label: 'Mobile', count: 1, color: '#00BCD4' },
+                      { emoji: '🔴', label: 'Red Team', count: 1, color: '#F44336' },
+                      { emoji: '🧠', label: 'AI Security', count: 1, color: '#00E676' },
+                    ].map((cat) => (
+                      <span
+                        key={cat.label}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] border transition-all hover:scale-105 cursor-default"
+                        style={{
+                          backgroundColor: `${cat.color}10`,
+                          borderColor: `${cat.color}25`,
+                          color: cat.color,
+                        }}
+                      >
+                        <span>{cat.emoji}</span>
+                        {cat.label}
+                        <span className="opacity-60">({cat.count})</span>
+                      </span>
+                    ))}
+                  </motion.div>
+
                   <motion.div
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.5, duration: 0.5 }}
-                    className="grid grid-cols-1 sm:grid-cols-2 gap-2"
+                    className="grid grid-cols-2 sm:grid-cols-4 gap-2"
                   >
                     {QUICK_COMMANDS.map((cmd) => (
                       <button

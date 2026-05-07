@@ -14,17 +14,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cerberus AI — Multi-Agent Cybersecurity System",
+  title: "Cerberus AI v3.0 — Multi-Agent Cybersecurity Platform",
   description:
-    "Sistem multi-agent AI untuk riset keamanan siber edukatif. Dilengkapi 6 agent spesialis: Onyx Overseer, Phantom Executor, Oracle Intelligence, Wraith Stealth, Harbinger Social, dan Swift Responder.",
+    "Platform multi-agent AI keamanan siber generasi 2026. 6 agent spesialis dengan 35+ skill terintegrasi dari 9 repo keamanan terkemuka: pentest-agents, communitytools, WebHackersWeapons, vulpine, SynthAPT, AgenticART, dan lainnya.",
   keywords: [
     "Cerberus AI",
     "cybersecurity",
     "multi-agent",
     "AI",
-    "educational security research",
+    "pentesting",
     "OSINT",
     "exploit",
+    "red team",
+    "dark web",
+    "bug bounty",
+    "vulnerability testing",
+    "Mistral AI",
   ],
   authors: [{ name: "Kak Sal & Agent Salbjork" }],
   icons: {
