@@ -271,11 +271,11 @@ TENTANG CERBERUS AI:
 ];
 
 // Route user message to the appropriate agent based on keywords
-export function routeToAgent(message: string, specifiedAgentId?: string): Agent {
+export function routeToAgent(message: string, specifiedAgentId?: string): { agent: Agent; confidence: number; reasoning: string } {
   // If agent is explicitly specified, find it
   if (specifiedAgentId) {
     const agent = agents.find((a) => a.id === specifiedAgentId);
-    if (agent) return agent;
+    if (agent) return { agent, confidence: 1.0, reasoning: "Dipilih manual oleh pengguna" };
   }
 
   const lowerMessage = message.toLowerCase();
@@ -283,25 +283,34 @@ export function routeToAgent(message: string, specifiedAgentId?: string): Agent 
   // Score each agent based on keyword matches
   let bestAgent = agents[0]; // Default to Onyx Overseer
   let bestScore = 0;
+  let matchedKeywords: string[] = [];
 
   for (const agent of agents) {
     if (agent.keywords.length === 0) continue; // Skip default agent
 
     let score = 0;
+    let matches: string[] = [];
     for (const keyword of agent.keywords) {
       if (lowerMessage.includes(keyword.toLowerCase())) {
         // Longer keywords get higher score to avoid false positives
         score += keyword.length;
+        matches.push(keyword);
       }
     }
 
     if (score > bestScore) {
       bestScore = score;
       bestAgent = agent;
+      matchedKeywords = matches;
     }
   }
 
-  return bestAgent;
+  const confidence = bestScore > 0 ? Math.min(bestScore / 30, 1.0) : 0;
+  const reasoning = matchedKeywords.length > 0
+    ? `Kata kunci cocok: ${matchedKeywords.join(', ')}`
+    : 'Tidak ada kata kunci spesifik, menggunakan default agent';
+
+  return { agent: bestAgent, confidence, reasoning };
 }
 
 // Get agent by ID

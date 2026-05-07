@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
+import type { Components } from 'react-markdown';
 import {
   Send,
   Menu,
@@ -18,6 +19,13 @@ import {
   Trash2,
   Sparkles,
   AlertTriangle,
+  Square,
+  Copy,
+  Check,
+  RefreshCw,
+  Plus,
+  MessageSquare,
+  Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -37,7 +45,9 @@ interface Message {
   };
   model?: string;
   tokens?: string;
+  responseTimeMs?: number;
   timestamp: number;
+  isStreaming?: boolean;
 }
 
 interface AgentInfo {
@@ -49,6 +59,13 @@ interface AgentInfo {
   description: string;
 }
 
+interface Session {
+  id: string;
+  title: string;
+  messages: Message[];
+  createdAt: number;
+}
+
 interface QuickCommand {
   icon: React.ReactNode;
   label: string;
@@ -57,6 +74,10 @@ interface QuickCommand {
 }
 
 // ===== CONSTANTS =====
+const SESSIONS_KEY = 'cerberus-sessions';
+const MAX_SESSIONS = 50;
+const MAX_MESSAGES_PER_SESSION = 100;
+
 const QUICK_COMMANDS: QuickCommand[] = [
   { icon: <Search size={14} />, label: 'OSINT Search', prefix: 'Cari informasi tentang ', color: '#6A0DAD' },
   { icon: <Skull size={14} />, label: 'Generate Code', prefix: 'Buatkan kode untuk ', color: '#DC143C' },
@@ -73,6 +94,83 @@ const DEFAULT_AGENTS: AgentInfo[] = [
   { id: 'harbinger-social', name: 'Harbinger Social', emoji: '🎭', color: '#E91E63', role: 'Social Engineering Specialist', description: 'Spesialis rekayasa sosial dan phishing.' },
   { id: 'swift-responder', name: 'Swift Responder', emoji: '⚡', color: '#00BCD4', role: 'Fast Response & FAQ', description: 'Agent ringan untuk respons instan dan FAQ.' },
 ];
+
+// ===== LOCAL STORAGE HELPERS =====
+function loadSessions(): Session[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(SESSIONS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed;
+  } catch {
+    return [];
+  }
+}
+
+function saveSessions(sessions: Session[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions.slice(0, MAX_SESSIONS)));
+  } catch {
+    // Storage full, ignore
+  }
+}
+
+// ===== CODE BLOCK COMPONENT =====
+function CodeBlock({ className, children }: { className?: string; children?: React.ReactNode }) {
+  const [copied, setCopied] = useState(false);
+  const match = /language-(\w+)/.exec(className || '');
+  const language = match ? match[1] : 'code';
+
+  const codeContent = String(children).replace(/\n$/, '');
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(codeContent).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div className="code-block-wrapper">
+      <div className="code-block-header">
+        <span>{language}</span>
+        <button onClick={handleCopy} className="code-block-copy">
+          {copied ? (
+            <span className="flex items-center gap-1">
+              <Check size={10} /> Tersalin!
+            </span>
+          ) : (
+            <span className="flex items-center gap-1">
+              <Copy size={10} /> Salin
+            </span>
+          )}
+        </button>
+      </div>
+      <pre className="!m-0 !rounded-none !border-0">
+        <code className={className}>{children}</code>
+      </pre>
+    </div>
+  );
+}
+
+// ===== MARKDOWN COMPONENTS =====
+const markdownComponents: Components = {
+  code({ className, children, ...props }) {
+    // If it's a code block (has className with language), use custom CodeBlock
+    if (className && className.startsWith('language-')) {
+      return <CodeBlock className={className}>{children}</CodeBlock>;
+    }
+    // Inline code
+    return (
+      <code className={className} {...props}>
+        {children}
+      </code>
+    );
+  },
+};
 
 // ===== FLOATING PARTICLES COMPONENT =====
 function FloatingParticles() {
@@ -109,43 +207,17 @@ function FloatingParticles() {
   );
 }
 
-// ===== TYPING INDICATOR =====
-function TypingIndicator({ agent }: { agent?: AgentInfo }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      className="flex items-start gap-3 px-4 py-2"
-    >
-      <div
-        className="w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0"
-        style={{ backgroundColor: `${agent?.color || '#DC143C'}20` }}
-      >
-        {agent?.emoji || '🐺'}
-      </div>
-      <div className="bg-cerberus-card rounded-2xl rounded-tl-sm px-4 py-3 border border-cerberus-border">
-        <div className="flex items-center gap-1.5">
-          <div className="typing-dot w-2 h-2 rounded-full bg-cerberus-crimson" />
-          <div className="typing-dot w-2 h-2 rounded-full bg-cerberus-crimson" />
-          <div className="typing-dot w-2 h-2 rounded-full bg-cerberus-crimson" />
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
 // ===== MARKDOWN MESSAGE COMPONENT =====
-function MessageContent({ content }: { content: string }) {
+function MessageContent({ content, isStreaming }: { content: string; isStreaming?: boolean }) {
   return (
-    <div className="message-content text-sm leading-relaxed">
-      <ReactMarkdown>{content}</ReactMarkdown>
+    <div className={cn('message-content text-sm leading-relaxed', isStreaming && 'streaming-cursor')}>
+      <ReactMarkdown components={markdownComponents}>{content}</ReactMarkdown>
     </div>
   );
 }
 
 // ===== AGENT AVATAR =====
-function AgentAvatar({ agent, size = 'md' }: { agent?: AgentInfo; size?: 'sm' | 'md' | 'lg' }) {
+function AgentAvatar({ agent, size = 'md' }: { agent?: AgentInfo | Message['agent']; size?: 'sm' | 'md' | 'lg' }) {
   const sizeClasses = {
     sm: 'w-7 h-7 text-xs',
     md: 'w-8 h-8 text-sm',
@@ -171,16 +243,35 @@ function AgentAvatar({ agent, size = 'md' }: { agent?: AgentInfo; size?: 'sm' | 
 
 // ===== MAIN PAGE =====
 export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeAgent, setActiveAgent] = useState<AgentInfo>(DEFAULT_AGENTS[0]);
   const [agents, setAgents] = useState<AgentInfo[]>(DEFAULT_AGENTS);
-  const [typingAgent, setTypingAgent] = useState<AgentInfo | undefined>();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Derived: active session
+  const activeSession = useMemo(() => {
+    if (!activeSessionId) return null;
+    return sessions.find(s => s.id === activeSessionId) || null;
+  }, [sessions, activeSessionId]);
+
+  // Derived: current messages
+  const messages = activeSession?.messages || [];
+
+  // Load sessions from localStorage on mount
+  useEffect(() => {
+    const loaded = loadSessions();
+    setSessions(loaded);
+    if (loaded.length > 0) {
+      setActiveSessionId(loaded[0].id);
+    }
+  }, []);
 
   // Fetch agents on mount
   useEffect(() => {
@@ -197,23 +288,75 @@ export default function Home() {
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, typingAgent]);
+  }, [messages]);
 
   // Focus input on mount
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
+  // Save sessions to localStorage whenever they change
+  useEffect(() => {
+    saveSessions(sessions);
+  }, [sessions]);
+
+  // Update a specific message in the active session
+  const updateMessage = useCallback((id: string, updates: Partial<Message>) => {
+    setSessions(prev => prev.map(session => {
+      if (session.id !== activeSessionId) return session;
+      return {
+        ...session,
+        messages: session.messages.map(m => m.id === id ? { ...m, ...updates } : m),
+      };
+    }));
+  }, [activeSessionId]);
+
+  // Create a new chat session
+  const createNewSession = useCallback(() => {
+    const newSession: Session = {
+      id: `session-${Date.now()}`,
+      title: 'Obrolan Baru',
+      messages: [],
+      createdAt: Date.now(),
+    };
+    setSessions(prev => [newSession, ...prev]);
+    setActiveSessionId(newSession.id);
+    setSidebarOpen(false);
+    inputRef.current?.focus();
+  }, []);
+
+  // Switch to a session
+  const switchSession = useCallback((sessionId: string) => {
+    setActiveSessionId(sessionId);
+    setSidebarOpen(false);
+    inputRef.current?.focus();
+  }, []);
+
+  // Delete a session
+  const deleteSession = useCallback((sessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSessions(prev => {
+      const filtered = prev.filter(s => s.id !== sessionId);
+      if (activeSessionId === sessionId) {
+        if (filtered.length > 0) {
+          setActiveSessionId(filtered[0].id);
+        } else {
+          setActiveSessionId(null);
+        }
+      }
+      return filtered;
+    });
+  }, [activeSessionId]);
+
   // Auto-resize textarea
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
-    // Auto resize
     const textarea = e.target;
     textarea.style.height = 'auto';
     textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
   };
 
-  // Handle submit
+  // Handle submit (streaming)
   const handleSubmit = useCallback(
     async (messageText?: string) => {
       const text = (messageText || inputValue).trim();
@@ -224,6 +367,20 @@ export default function Home() {
         inputRef.current.style.height = 'auto';
       }
 
+      // Ensure we have an active session
+      let sessionId = activeSessionId;
+      if (!sessionId) {
+        const newSession: Session = {
+          id: `session-${Date.now()}`,
+          title: text.slice(0, 30),
+          messages: [],
+          createdAt: Date.now(),
+        };
+        setSessions(prev => [newSession, ...prev]);
+        sessionId = newSession.id;
+        setActiveSessionId(sessionId);
+      }
+
       const userMessage: Message = {
         id: `msg-${Date.now()}`,
         role: 'user',
@@ -231,19 +388,52 @@ export default function Home() {
         timestamp: Date.now(),
       };
 
-      setMessages((prev) => [...prev, userMessage]);
+      // Add user message to session and update title if first message
+      const isFirstMessage = !sessions.find(s => s.id === sessionId)?.messages.length;
+      setSessions(prev => prev.map(session => {
+        if (session.id !== sessionId) return session;
+        return {
+          ...session,
+          title: isFirstMessage ? text.slice(0, 30) : session.title,
+          messages: [...session.messages, userMessage],
+        };
+      }));
+
       setIsLoading(true);
 
-      // Show typing indicator
-      setTypingAgent(activeAgent);
+      // Create empty AI message placeholder
+      const aiMessageId = `msg-${Date.now() + 1}`;
+      const aiMessage: Message = {
+        id: aiMessageId,
+        role: 'assistant',
+        content: '',
+        timestamp: Date.now(),
+        isStreaming: true,
+      };
+
+      // Use setTimeout to ensure session state is set before streaming starts
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Add empty AI message
+      setSessions(prev => prev.map(session => {
+        if (session.id !== sessionId) return session;
+        return {
+          ...session,
+          messages: [...session.messages, aiMessage],
+        };
+      }));
+
+      // Build history (excluding the empty AI message)
+      const currentMessages = sessions.find(s => s.id === sessionId)?.messages || [];
+      const history = currentMessages.map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      }));
+
+      const controller = new AbortController();
+      abortRef.current = controller;
 
       try {
-        // Build history for context
-        const history = messages.map((m) => ({
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
-        }));
-
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -251,46 +441,174 @@ export default function Home() {
             message: text,
             agent: activeAgent.id === 'onyx-overseer' ? undefined : activeAgent.id,
             history,
+            stream: true,
           }),
+          signal: controller.signal,
         });
 
-        const data = await response.json();
-
-        // If a different agent was routed, update the active agent display
-        if (data.agent && data.agent.id !== activeAgent.id) {
-          const routedAgent = agents.find((a) => a.id === data.agent.id) || activeAgent;
-          setTypingAgent({ ...routedAgent, ...data.agent });
+        if (!response.ok) {
+          throw new Error(`HTTP Error: ${response.status}`);
         }
 
-        // Small delay for UX
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        const reader = response.body!.getReader();
+        const decoder = new TextDecoder();
+        let accumulated = '';
+        let usedModel = '';
+        let totalTokens = 0;
+        let responseTimeMs = 0;
+        let agentInfo: Message['agent'] = undefined;
 
-        const assistantMessage: Message = {
-          id: `msg-${Date.now() + 1}`,
-          role: 'assistant',
-          content: data.response || 'Maaf, tidak ada respons dari server.',
-          agent: data.agent,
-          model: data.model,
-          tokens: data.tokens,
-          timestamp: Date.now(),
-        };
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        setMessages((prev) => [...prev, assistantMessage]);
-      } catch {
-        const errorMessage: Message = {
-          id: `msg-${Date.now() + 1}`,
-          role: 'system',
-          content: '❌ **Koneksi gagal.** Tidak dapat terhubung ke server. Silakan periksa koneksi internet Anda dan coba lagi.',
-          timestamp: Date.now(),
-        };
-        setMessages((prev) => [...prev, errorMessage]);
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') break;
+
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.type === 'agent') {
+                  agentInfo = parsed.data;
+                  setSessions(prev => prev.map(session => {
+                    if (session.id !== sessionId) return session;
+                    return {
+                      ...session,
+                      messages: session.messages.map(m =>
+                        m.id === aiMessageId ? { ...m, agent: parsed.data } : m
+                      ),
+                    };
+                  }));
+                } else if (parsed.type === 'model') {
+                  usedModel = parsed.data;
+                } else if (parsed.type === 'token') {
+                  accumulated += parsed.data;
+                  setSessions(prev => prev.map(session => {
+                    if (session.id !== sessionId) return session;
+                    return {
+                      ...session,
+                      messages: session.messages.map(m =>
+                        m.id === aiMessageId ? { ...m, content: accumulated } : m
+                      ),
+                    };
+                  }));
+                } else if (parsed.type === 'done') {
+                  totalTokens = parsed.data.totalTokens;
+                  responseTimeMs = parsed.data.responseTimeMs;
+                  usedModel = parsed.data.model || usedModel;
+                } else if (parsed.type === 'error') {
+                  accumulated += `\n\n❌ **Error:** ${parsed.data}`;
+                }
+              } catch {
+                // Ignore malformed JSON
+              }
+            }
+          }
+        }
+
+        // Finalize the message
+        setSessions(prev => prev.map(session => {
+          if (session.id !== sessionId) return session;
+          // Trim messages to MAX_MESSAGES_PER_SESSION
+          let updatedMessages = session.messages.map(m =>
+            m.id === aiMessageId
+              ? {
+                  ...m,
+                  content: accumulated,
+                  agent: agentInfo,
+                  model: usedModel || agent?.model,
+                  tokens: totalTokens > 0 ? String(totalTokens) : undefined,
+                  responseTimeMs,
+                  isStreaming: false,
+                }
+              : m
+          );
+          // Keep only last MAX_MESSAGES_PER_SESSION
+          if (updatedMessages.length > MAX_MESSAGES_PER_SESSION) {
+            updatedMessages = updatedMessages.slice(-MAX_MESSAGES_PER_SESSION);
+          }
+          return { ...session, messages: updatedMessages };
+        }));
+      } catch (error) {
+        if ((error as Error).name === 'AbortError') {
+          // User cancelled - finalize with whatever content was accumulated
+          setSessions(prev => prev.map(session => {
+            if (session.id !== sessionId) return session;
+            return {
+              ...session,
+              messages: session.messages.map(m =>
+                m.id === aiMessageId
+                  ? { ...m, isStreaming: false, content: m.content || '⏹ Generasi dihentikan.' }
+                  : m
+              ),
+            };
+          }));
+        } else {
+          setSessions(prev => prev.map(session => {
+            if (session.id !== sessionId) return session;
+            return {
+              ...session,
+              messages: session.messages.map(m =>
+                m.id === aiMessageId
+                  ? {
+                      ...m,
+                      isStreaming: false,
+                      role: 'system' as const,
+                      content: '❌ **Koneksi gagal.** Tidak dapat terhubung ke server. Silakan periksa koneksi internet Anda dan coba lagi.',
+                    }
+                  : m
+              ),
+            };
+          }));
+        }
       } finally {
         setIsLoading(false);
-        setTypingAgent(undefined);
+        abortRef.current = null;
       }
     },
-    [inputValue, isLoading, messages, activeAgent, agents]
+    [inputValue, isLoading, sessions, activeSessionId, activeAgent]
   );
+
+  // Stop generation
+  const stopGeneration = useCallback(() => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+  }, []);
+
+  // Regenerate last response
+  const handleRegenerate = useCallback(() => {
+    if (isLoading) return;
+    // Find the last user message
+    const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+    if (!lastUserMsg) return;
+
+    // Remove the last assistant message
+    setSessions(prev => prev.map(session => {
+      if (session.id !== activeSessionId) return session;
+      const msgs = [...session.messages];
+      // Remove last assistant/system message
+      while (msgs.length > 0 && msgs[msgs.length - 1].role !== 'user') {
+        msgs.pop();
+      }
+      return { ...session, messages: msgs };
+    }));
+
+    // Re-submit the last user message
+    setTimeout(() => {
+      handleSubmit(lastUserMsg.content);
+    }, 100);
+  }, [messages, isLoading, activeSessionId, handleSubmit]);
+
+  // Copy message content
+  const handleCopyMessage = useCallback((content: string) => {
+    navigator.clipboard.writeText(content);
+  }, []);
 
   // Handle keyboard shortcut
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -298,13 +616,6 @@ export default function Home() {
       e.preventDefault();
       handleSubmit();
     }
-  };
-
-  // Clear chat
-  const clearChat = () => {
-    setMessages([]);
-    setActiveAgent(DEFAULT_AGENTS[0]);
-    inputRef.current?.focus();
   };
 
   // Quick command handler
@@ -330,8 +641,15 @@ export default function Home() {
     return activeAgent;
   }, [messages, activeAgent, agents]);
 
+  // Format response time
+  const formatResponseTime = (ms?: number) => {
+    if (!ms) return '';
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(1)}s`;
+  };
+
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-cerberus-bg">
+    <div className="h-screen flex flex-col overflow-hidden bg-cerberus-bg page-transition">
       {/* Floating particles background */}
       <FloatingParticles />
 
@@ -377,16 +695,34 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Clear chat */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-cerberus-text-dim hover:text-cerberus-crimson hover:bg-cerberus-card"
-          onClick={clearChat}
-          title="Bersihkan chat"
-        >
-          <Trash2 size={16} />
-        </Button>
+        {/* Clear chat / New chat */}
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-cerberus-text-dim hover:text-cerberus-crimson hover:bg-cerberus-card"
+            onClick={createNewSession}
+            title="Obrolan baru"
+          >
+            <Plus size={16} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-cerberus-text-dim hover:text-cerberus-crimson hover:bg-cerberus-card"
+            onClick={() => {
+              if (activeSessionId) {
+                setSessions(prev => prev.map(s =>
+                  s.id === activeSessionId ? { ...s, messages: [] } : s
+                ));
+              }
+              inputRef.current?.focus();
+            }}
+            title="Bersihkan chat"
+          >
+            <Trash2 size={16} />
+          </Button>
+        </div>
       </header>
 
       {/* ===== MAIN CONTENT ===== */}
@@ -418,8 +754,69 @@ export default function Home() {
                   !sidebarOpen && 'hidden lg:flex'
                 )}
               >
-                {/* Sidebar header */}
-                <div className="p-4 border-b border-cerberus-border">
+                {/* Sidebar: New Chat button */}
+                <div className="p-3 border-b border-cerberus-border">
+                  <button
+                    onClick={createNewSession}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-cerberus-crimson/30 bg-cerberus-crimson/10 text-cerberus-crimson hover:bg-cerberus-crimson/20 transition-all text-xs font-medium"
+                  >
+                    <Plus size={14} />
+                    Obrolan Baru
+                  </button>
+                </div>
+
+                {/* Session list */}
+                {sessions.length > 0 && (
+                  <div className="border-b border-cerberus-border">
+                    <div className="px-4 py-2">
+                      <h3 className="text-[10px] font-semibold tracking-wider text-cerberus-text-dim uppercase">
+                        Riwayat Obrolan
+                      </h3>
+                    </div>
+                    <ScrollArea className="max-h-48 cerberus-scrollbar-slim">
+                      <div className="px-2 pb-2 space-y-0.5">
+                        {sessions.map((session) => (
+                          <button
+                            key={session.id}
+                            onClick={() => switchSession(session.id)}
+                            className={cn(
+                              'session-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border border-transparent text-left',
+                              activeSessionId === session.id && 'active'
+                            )}
+                          >
+                            <MessageSquare size={13} className="text-cerberus-text-dim flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[11px] text-cerberus-text truncate">
+                                {session.title}
+                              </p>
+                              <p className="text-[9px] text-cerberus-text-dim flex items-center gap-1">
+                                <Clock size={8} />
+                                {new Date(session.createdAt).toLocaleDateString('id-ID', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                })}
+                                {' · '}
+                                {session.messages.length} pesan
+                              </p>
+                            </div>
+                            <button
+                              onClick={(e) => deleteSession(session.id, e)}
+                              className="opacity-0 group-hover:opacity-100 hover:opacity-100 p-1 rounded text-cerberus-text-dim hover:text-cerberus-crimson transition-all"
+                              style={{ opacity: activeSessionId === session.id ? 0.6 : 0 }}
+                              onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                              onMouseLeave={(e) => (e.currentTarget.style.opacity = activeSessionId === session.id ? '0.6' : '0')}
+                            >
+                              <Trash2 size={11} />
+                            </button>
+                          </button>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                )}
+
+                {/* Agent list */}
+                <div className="p-3 border-b border-cerberus-border">
                   <h2 className="text-xs font-semibold tracking-wider text-cerberus-gold uppercase mb-1">
                     Agent Cerberus
                   </h2>
@@ -428,7 +825,6 @@ export default function Home() {
                   </p>
                 </div>
 
-                {/* Agent list */}
                 <ScrollArea className="flex-1">
                   <div className="p-2 space-y-1">
                     {agents.map((agent) => (
@@ -512,6 +908,21 @@ export default function Home() {
                         Multi-Agent Cybersecurity System
                       </p>
                     </div>
+
+                    {/* Version badge */}
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cerberus-crimson/15 text-cerberus-crimson border border-cerberus-crimson/25">
+                        v2.1 Phoenix
+                      </span>
+                      <span className="text-[10px] text-cerberus-text-dim">
+                        Powered by Mistral AI
+                      </span>
+                    </div>
+
+                    {/* Stats */}
+                    <p className="text-[11px] text-cerberus-text-dim">
+                      6 Agents • 5 Models • Streaming
+                    </p>
                   </motion.div>
 
                   {/* Description */}
@@ -617,7 +1028,7 @@ export default function Home() {
                       {/* Message bubble */}
                       <div
                         className={cn(
-                          'max-w-[80%] rounded-2xl px-4 py-3 border',
+                          'max-w-[80%] rounded-2xl px-4 py-3 border message-bubble relative',
                           msg.role === 'user'
                             ? 'bg-cerberus-crimson/10 border-cerberus-crimson/20 rounded-tr-sm'
                             : 'bg-cerberus-card border-cerberus-border rounded-tl-sm',
@@ -630,23 +1041,57 @@ export default function Home() {
                             <span className="text-xs font-semibold" style={{ color: msg.agent.color }}>
                               {msg.agent.name}
                             </span>
-                            {msg.model && (
-                              <span className="text-[10px] text-cerberus-text-dim bg-cerberus-surface px-1.5 py-0.5 rounded">
-                                {msg.model}
-                              </span>
-                            )}
                           </div>
                         )}
 
                         {/* Message content */}
                         {msg.role === 'assistant' || msg.role === 'system' ? (
-                          <MessageContent content={msg.content} />
+                          <MessageContent content={msg.content} isStreaming={msg.isStreaming} />
                         ) : (
                           <p className="text-sm leading-relaxed">{msg.content}</p>
                         )}
 
+                        {/* Message actions for assistant messages */}
+                        {msg.role === 'assistant' && !msg.isStreaming && msg.content && (
+                          <div className="message-actions flex items-center gap-1 mt-2">
+                            <button
+                              onClick={() => handleCopyMessage(msg.content)}
+                              className="flex items-center gap-1 px-1.5 py-1 rounded-md text-cerberus-text-dim hover:text-cerberus-text hover:bg-cerberus-surface transition-all text-[10px]"
+                              title="Salin pesan"
+                            >
+                              <Copy size={11} />
+                              Salin
+                            </button>
+                            {msg.id === messages[messages.length - 1]?.id && !isLoading && (
+                              <button
+                                onClick={handleRegenerate}
+                                className="flex items-center gap-1 px-1.5 py-1 rounded-md text-cerberus-text-dim hover:text-cerberus-text hover:bg-cerberus-surface transition-all text-[10px]"
+                                title="Regenerasi respons"
+                              >
+                                <RefreshCw size={11} />
+                                Regenerasi
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Metrics bar */}
+                        {msg.role === 'assistant' && !msg.isStreaming && (msg.model || msg.responseTimeMs || msg.tokens) && (
+                          <div className="metrics-bar mt-2 pt-1 border-t border-cerberus-border/50">
+                            {msg.model && (
+                              <span className="metric-badge">{msg.model}</span>
+                            )}
+                            {msg.responseTimeMs && (
+                              <span>⏱ {formatResponseTime(msg.responseTimeMs)}</span>
+                            )}
+                            {msg.tokens && Number(msg.tokens) > 0 && (
+                              <span>📝 ~{msg.tokens} tokens</span>
+                            )}
+                          </div>
+                        )}
+
                         {/* Timestamp */}
-                        <p className="text-[10px] text-cerberus-text-dim mt-2">
+                        <p className="text-[10px] text-cerberus-text-dim mt-1.5">
                           {new Date(msg.timestamp).toLocaleTimeString('id-ID', {
                             hour: '2-digit',
                             minute: '2-digit',
@@ -655,11 +1100,6 @@ export default function Home() {
                       </div>
                     </motion.div>
                   ))}
-                </AnimatePresence>
-
-                {/* Typing indicator */}
-                <AnimatePresence>
-                  {isLoading && <TypingIndicator agent={typingAgent} />}
                 </AnimatePresence>
 
                 <div ref={messagesEndRef} />
@@ -689,6 +1129,18 @@ export default function Home() {
               {/* Input bar */}
               <div className="flex items-end gap-2">
                 <div className="flex-1 relative">
+                  {/* Agent avatar inside input */}
+                  <div className="absolute left-3 bottom-3">
+                    <div
+                      className="w-6 h-6 rounded-md flex items-center justify-center text-xs border"
+                      style={{
+                        backgroundColor: `${activeAgent.color}12`,
+                        borderColor: `${activeAgent.color}25`,
+                      }}
+                    >
+                      {activeAgent.emoji}
+                    </div>
+                  </div>
                   <textarea
                     ref={inputRef}
                     value={inputValue}
@@ -697,26 +1149,47 @@ export default function Home() {
                     placeholder={`Kirim pesan ke ${activeAgent.name}...`}
                     disabled={isLoading}
                     rows={1}
-                    className="w-full resize-none rounded-xl border border-cerberus-border bg-cerberus-card text-cerberus-text placeholder:text-cerberus-text-dim px-4 py-3 text-sm input-glow focus:outline-none disabled:opacity-50 transition-all min-h-[44px]"
+                    className="w-full resize-none rounded-xl border border-cerberus-border bg-cerberus-card text-cerberus-text placeholder:text-cerberus-text-dim pl-11 pr-10 py-3 text-sm input-glow focus:outline-none disabled:opacity-50 transition-all min-h-[44px]"
                     style={{
                       maxHeight: '150px',
                     }}
                   />
+                  {/* Character count & model indicator */}
+                  <div className="absolute right-3 bottom-3 flex flex-col items-end gap-0.5">
+                    {inputValue.length > 500 && (
+                      <span className={cn(
+                        'text-[9px]',
+                        inputValue.length > 9000 ? 'text-cerberus-crimson' : 'text-cerberus-text-dim'
+                      )}>
+                        {inputValue.length}/10000
+                      </span>
+                    )}
+                    <span className="text-[9px] text-cerberus-text-dim opacity-50">
+                      {activeAgent.model || 'devstral-small-2507'}
+                    </span>
+                  </div>
                 </div>
-                <Button
-                  onClick={() => handleSubmit()}
-                  disabled={isLoading || !inputValue.trim()}
-                  className="h-[44px] w-[44px] rounded-xl bg-cerberus-crimson hover:bg-cerberus-crimson/80 text-white flex-shrink-0 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                  style={{
-                    boxShadow: inputValue.trim() && !isLoading ? '0 0 20px rgba(220, 20, 60, 0.3)' : 'none',
-                  }}
-                >
-                  {isLoading ? (
-                    <Sparkles size={18} className="animate-spin" />
-                  ) : (
+
+                {/* Send / Stop button */}
+                {isLoading ? (
+                  <Button
+                    onClick={stopGeneration}
+                    className="h-[44px] w-[44px] rounded-xl bg-cerberus-gold/20 hover:bg-cerberus-gold/30 text-cerberus-gold border border-cerberus-gold/30 flex-shrink-0 transition-all"
+                  >
+                    <Square size={18} />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => handleSubmit()}
+                    disabled={!inputValue.trim()}
+                    className="h-[44px] w-[44px] rounded-xl bg-cerberus-crimson hover:bg-cerberus-crimson/80 text-white flex-shrink-0 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                    style={{
+                      boxShadow: inputValue.trim() ? '0 0 20px rgba(220, 20, 60, 0.3)' : 'none',
+                    }}
+                  >
                     <Send size={18} />
-                  )}
-                </Button>
+                  </Button>
+                )}
               </div>
 
               {/* Footer hint */}

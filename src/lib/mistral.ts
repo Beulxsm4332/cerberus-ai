@@ -28,6 +28,11 @@ interface MistralResponse {
   };
 }
 
+export type MistralMessage = {
+  role: "system" | "user" | "assistant";
+  content: string;
+};
+
 export async function callMistralAPI(
   messages: MistralMessage[],
   model: string = "devstral-small-2507",
@@ -102,19 +107,66 @@ export async function callMistralAPI(
   }
 }
 
+// Streaming function — returns raw SSE stream from Mistral
+export async function streamMistralAPI(
+  messages: MistralMessage[],
+  model: string = "devstral-small-2507",
+  temperature: number = 0.3,
+  maxTokens: number = 4096
+): Promise<ReadableStream<Uint8Array>> {
+  const apiKey = process.env.MISTRAL_API_KEY;
+  if (!apiKey) throw new Error("API Key Mistral tidak ditemukan.");
+
+  const response = await fetch(MISTRAL_API_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      temperature,
+      max_tokens: maxTokens,
+      stream: true,
+    }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("API Key Mistral tidak valid atau sudah kadaluarsa.");
+    }
+    if (response.status === 429) {
+      throw new Error("Rate limit tercapai. Silakan coba lagi dalam beberapa saat.");
+    }
+    if (response.status === 500 || response.status === 502 || response.status === 503) {
+      throw new Error("Server Mistral sedang mengalami gangguan. Silakan coba lagi nanti.");
+    }
+    throw new Error(`Mistral API error: ${response.status}`);
+  }
+
+  if (!response.body) {
+    throw new Error("No response body");
+  }
+
+  return response.body;
+}
+
 // Fallback function: try primary model, then fallback to ministral-3b-latest
 export async function callWithFallback(
   messages: MistralMessage[],
   primaryModel: string,
   temperature: number,
   maxTokens: number
-): Promise<{ content: string; model: string; tokens: string }> {
+): Promise<{ content: string; model: string; tokens: string; responseTimeMs: number }> {
+  const startTime = Date.now();
   try {
     const result = await callMistralAPI(messages, primaryModel, temperature, maxTokens);
     return {
       content: result.content,
       model: result.model,
       tokens: String(result.tokens),
+      responseTimeMs: Date.now() - startTime,
     };
   } catch (primaryError) {
     console.warn(`[Cerberus] Model utama (${primaryModel}) gagal, mencoba fallback...`, primaryError);
@@ -131,6 +183,7 @@ export async function callWithFallback(
         content: `[⚡ Respon dari model fallback]\n\n${result.content}`,
         model: result.model,
         tokens: String(result.tokens),
+        responseTimeMs: Date.now() - startTime,
       };
     } catch (fallbackError) {
       console.error(`[Cerberus] Model fallback juga gagal:`, fallbackError);
