@@ -1,31 +1,28 @@
-# Cerberus AI - HuggingFace Spaces Docker Deployment
-FROM node:20-slim AS base
+# HexStrike AI — HuggingFace Spaces Docker Deployment
+FROM python:3.11-slim AS base
 
-# Install dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    openssl \
+    git \
+    curl \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Install bun
-RUN npm install -g bun
+# Copy requirements and install Python dependencies
+COPY hexstrike/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy package files
-COPY package.json bun.lock* ./
+# Install Playwright browsers (for BrowserAgent)
+RUN pip install --no-cache-dir playwright && playwright install chromium --with-deps
 
-# Install dependencies
-RUN bun install --frozen-lockfile || bun install
-
-# Copy source code
+# Copy all application code
 COPY . .
-
-# Build Next.js application
-RUN bun run build
 
 # Expose port for HuggingFace Spaces
 ENV PORT=7860
 ENV HOSTNAME="0.0.0.0"
 
-# Command to run
-CMD ["bun", "run", "start"]
+# Command to run — Gradio dashboard
+CMD ["python", "main.py", "--port", "7860"]
