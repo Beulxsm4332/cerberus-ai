@@ -62,3 +62,29 @@ Stage Summary:
 - Portal blank issue was caused by React hydration mismatch from `typeof window` checks in JSX
 - Fix removes all `typeof window` from render path, uses `isMobile` state via useEffect instead
 - Code committed and pushed to GitHub (main branch)
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Full HexStrike Python backend integration
+
+Work Log:
+- Audited full codebase: found frontend and Python backend were 100% disconnected
+- Created src/lib/hexstrike/client.ts — HTTP client to HexStrike Python backend (port 8888)
+- Created src/lib/hexstrike/bridge-tools.ts — 24 HexStrike bridge tools
+- Created /api/hexstrike route — proxy to Python backend
+- Created /api/status route — system health endpoint
+- Updated all 6 agent tool arrays to include HexStrike tools
+- Updated chat/route.ts to register bridge tools on startup + async backend check
+- Updated registry.ts with backend connection methods
+- Updated .env.example with HEXSTRIKE_BACKEND_URL
+- Updated page.tsx UI: 56 tools, backend info in welcome screen
+- Build verified: 56 total tools (32 local + 24 bridge)
+- Committed as f6ce267, pushed to GitHub
+
+Stage Summary:
+- Frontend now connects to HexStrike Python backend via HTTP proxy
+- 24 new HexStrike bridge tools: recon, exploitation, intelligence, cloud, CTF, vuln intel
+- Auto-detect backend online/offline status
+- When backend offline: auto-fallback to AI advisory mode
+- All 6 agents have HexStrike tools mapped to their roles
