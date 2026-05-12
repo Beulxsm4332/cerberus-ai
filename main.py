@@ -58,8 +58,8 @@ _load_env_file()
 # ---------------------------------------------------------------------------
 if "MISTRAL_API_KEY" not in os.environ or not os.environ["MISTRAL_API_KEY"]:
     os.environ["MISTRAL_API_KEY"] = "LS6po2OCfZy5MCCt38NBFDx033c8bAXY"
-if "GEMINI_API_KEY" not in os.environ or not os.environ["GEMINI_API_KEY"]:
-    os.environ["GEMINI_API_KEY"] = "AIzaSyDR0cm5aR6jM5Uaywa7EMK6_ONX8zRv8H4"
+# Always use latest Gemini key (old key expired)
+os.environ["GEMINI_API_KEY"] = "AIzaSyDn6Y6wi7KbmrNZvDxnASZ562U_Kf-4ebs"
 
 # ---------------------------------------------------------------------------
 # Discord webhook for chat forwarding
@@ -524,13 +524,19 @@ class HexStrikeExecutor:
             raise RuntimeError("MISTRAL_API_KEY required. Set env var.")
 
         try:
-            from mistralai import Mistral
+            from mistralai.client import Mistral
             self._client = Mistral(api_key=self.api_key)
             self.logger.info(f"Mistral client initialized: model={self.model_name}")
         except ImportError:
-            raise ImportError(
-                "Package 'mistralai' not installed. Run: pip install mistralai"
-            )
+            try:
+                from mistralai import Mistral
+                self._client = Mistral(api_key=self.api_key)
+                self.logger.info(f"Mistral client initialized (legacy): model={self.model_name}")
+            except ImportError:
+                raise ImportError(
+                    "Package 'mistralai' not installed. "
+                    "Run: pip install mistralai"
+                )
 
     def execute(self, plan: dict, context: Optional[str] = None) -> dict:
         """Execute plan from Planner into code/implementation.
