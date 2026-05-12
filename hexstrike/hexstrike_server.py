@@ -39,10 +39,22 @@ import shutil
 import venv
 import zipfile
 from pathlib import Path
-from flask import Flask, request, jsonify
-import psutil
+# Heavy imports with graceful fallback
+try:
+    from flask import Flask, request, jsonify
+    HAS_FLASK = True
+except ImportError:
+    HAS_FLASK = False
+    print("[WARNING] Flask not installed. Install with: pip install flask")
+
+try:
+    import psutil
+    HAS_PSUTIL = True
+except ImportError:
+    HAS_PSUTIL = False
+    print("[WARNING] psutil not installed. Install with: pip install psutil")
+
 import signal
-import requests
 import re
 import socket
 import urllib.parse
@@ -50,20 +62,52 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Set, Tuple
 import asyncio
-import aiohttp
+
+try:
+    import requests
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
+    print("[WARNING] requests not installed. Install with: pip install requests")
+
+try:
+    import aiohttp
+    HAS_AIOHTTP = True
+except ImportError:
+    HAS_AIOHTTP = False
+    print("[WARNING] aiohttp not installed. Install with: pip install aiohttp")
+
 from urllib.parse import urljoin, urlparse, parse_qs
-from bs4 import BeautifulSoup
-import selenium
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, WebDriverException
-import mitmproxy
-from mitmproxy import http as mitmhttp
-from mitmproxy.tools.dump import DumpMaster
-from mitmproxy.options import Options as MitmOptions
+
+try:
+    from bs4 import BeautifulSoup
+    HAS_BS4 = True
+except ImportError:
+    HAS_BS4 = False
+    print("[WARNING] beautifulsoup4 not installed. Install with: pip install beautifulsoup4")
+
+try:
+    import selenium
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.common.exceptions import TimeoutException, WebDriverException
+    HAS_SELENIUM = True
+except ImportError:
+    HAS_SELENIUM = False
+    print("[WARNING] selenium not installed. Install with: pip install selenium")
+
+try:
+    import mitmproxy
+    from mitmproxy import http as mitmhttp
+    from mitmproxy.tools.dump import DumpMaster
+    from mitmproxy.options import Options as MitmOptions
+    HAS_MITMPROXY = True
+except ImportError:
+    HAS_MITMPROXY = False
+    print("[WARNING] mitmproxy not installed. Install with: pip install mitmproxy")
 
 # ============================================================================
 # LOGGING CONFIGURATION (MUST BE FIRST)
@@ -90,9 +134,12 @@ except PermissionError:
     )
 logger = logging.getLogger(__name__)
 
-# Flask app configuration
-app = Flask(__name__)
-app.config['JSON_SORT_KEYS'] = False
+# Flask app configuration (conditional on Flask availability)
+if HAS_FLASK:
+    app = Flask(__name__)
+    app.config['JSON_SORT_KEYS'] = False
+else:
+    app = None
 
 # API Configuration
 API_PORT = int(os.environ.get('HEXSTRIKE_PORT', 8888))
@@ -126,10 +173,10 @@ class ModernVisualEngine:
         'BURGUNDY': '\033[38;5;52m',
         'SCARLET': '\033[38;5;197m',
         'RUBY': '\033[38;5;161m',
-    # Unified theme primary/secondary (used going forward instead of legacy blue/green accents)
-    'PRIMARY_BORDER': '\033[38;5;160m',  # CRIMSON
-    'ACCENT_LINE': '\033[38;5;196m',      # HACKER_RED
-    'ACCENT_GRADIENT': '\033[38;5;124m',  # BLOOD_RED (for subtle alternation)
+        # Unified theme primary/secondary (used going forward instead of legacy blue/green accents)
+        'PRIMARY_BORDER': '\033[38;5;160m',  # CRIMSON
+        'ACCENT_LINE': '\033[38;5;196m',      # HACKER_RED
+        'ACCENT_GRADIENT': '\033[38;5;124m',  # BLOOD_RED (for subtle alternation)
         # Highlighting colors
         'HIGHLIGHT_RED': '\033[48;5;196m\033[38;5;15m',  # Red background, white text
         'HIGHLIGHT_YELLOW': '\033[48;5;226m\033[38;5;16m',  # Yellow background, black text
@@ -17285,5 +17332,10 @@ if __name__ == "__main__":
     for line in startup_info.strip().split('\n'):
         if line.strip():
             logger.info(line)
+
+    if not HAS_FLASK:
+        print("[CRITICAL] Flask is required to run the HexStrike AI API Server.")
+        print("[CRITICAL] Install it with: pip install flask")
+        sys.exit(1)
 
     app.run(host="0.0.0.0", port=API_PORT, debug=DEBUG_MODE)

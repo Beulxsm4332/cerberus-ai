@@ -26,7 +26,12 @@ import requests
 import time
 from datetime import datetime
 
-from mcp.server.fastmcp import FastMCP
+try:
+    from mcp.server.fastmcp import FastMCP
+    HAS_MCP = True
+except ImportError:
+    HAS_MCP = False
+    print("[WARNING] mcp not installed. Install with: pip install mcp")
 
 class HexStrikeColors:
     """Enhanced color palette matching the server's ModernVisualEngine.COLORS"""
@@ -5425,6 +5430,11 @@ def parse_args():
 
 def main():
     """Main entry point for the MCP server."""
+    if not HAS_MCP:
+        print("[CRITICAL] MCP is required to run the HexStrike AI MCP Client.")
+        print("[CRITICAL] Install it with: pip install mcp")
+        sys.exit(1)
+
     args = parse_args()
 
     # Configure logging based on debug flag
