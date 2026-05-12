@@ -226,6 +226,7 @@ export default function Home() {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [activeAgent, setActiveAgent] = useState<AgentInfo>(DEFAULT_AGENTS[0]);
   const [agents, setAgents] = useState<AgentInfo[]>(DEFAULT_AGENTS);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -282,6 +283,14 @@ export default function Home() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Detect mobile on mount (client-only to avoid hydration mismatch)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   // Focus input on mount
   useEffect(() => {
@@ -738,32 +747,29 @@ export default function Home() {
       {/* ===== MAIN CONTENT ===== */}
       <div className="flex-1 flex overflow-hidden relative">
         {/* ===== SIDEBAR ===== */}
+        {/* Mobile overlay */}
         <AnimatePresence>
-          {(sidebarOpen || typeof window !== 'undefined') && (
-            <>
-              {/* Mobile overlay */}
-              {sidebarOpen && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-black/60 z-20 lg:hidden"
-                  onClick={() => setSidebarOpen(false)}
-                />
-              )}
+          {isMobile && sidebarOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 z-20 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
+        </AnimatePresence>
 
-              <motion.aside
-                initial={false}
-                animate={{
-                  x: sidebarOpen ? 0 : (typeof window !== 'undefined' && window.innerWidth < 1024) ? -240 : 0,
-                }}
-                transition={{ type: 'tween', duration: 0.2 }}
-                className={cn(
-                  'w-[240px] flex-shrink-0 border-r border-hex-border bg-hex-surface/95 backdrop-blur-md flex flex-col z-30',
-                  'lg:translate-x-0 lg:relative lg:z-0',
-                  !sidebarOpen && 'hidden lg:flex'
-                )}
-              >
+        {/* Sidebar */}
+        <aside
+          className={cn(
+            'w-[240px] flex-shrink-0 border-r border-hex-border bg-hex-surface/95 backdrop-blur-md flex flex-col z-30',
+            // On mobile: hidden by default, shown when sidebarOpen
+            isMobile ? (sidebarOpen ? 'fixed inset-y-0 left-0' : 'hidden') : '',
+            // On desktop: always visible
+            'lg:relative lg:z-0 lg:flex'
+          )}
+        >
                 {/* New Chat button */}
                 <div className="p-3 border-b border-hex-border">
                   <button
@@ -881,10 +887,7 @@ export default function Home() {
                     </p>
                   </div>
                 </div>
-              </motion.aside>
-            </>
-          )}
-        </AnimatePresence>
+        </aside>
 
         {/* ===== CHAT AREA ===== */}
         <main className="flex-1 flex flex-col overflow-hidden">
