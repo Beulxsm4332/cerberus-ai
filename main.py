@@ -32,6 +32,28 @@ from urllib.request import urlopen, Request
 from urllib.error import URLError
 
 # ---------------------------------------------------------------------------
+# Load .env file (API keys) — MUST be before any model initialization
+# ---------------------------------------------------------------------------
+def _load_env_file():
+    """Load .env file if it exists (for local dev). HF Spaces uses native secrets."""
+    env_path = Path(__file__).parent / ".env"
+    if env_path.exists():
+        with open(env_path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "=" in line:
+                    key, _, value = line.partition("=")
+                    key = key.strip()
+                    value = value.strip()
+                    # Only set if not already in environment (HF Spaces secrets take priority)
+                    if key and key not in os.environ:
+                        os.environ[key] = value
+
+_load_env_file()
+
+# ---------------------------------------------------------------------------
 # Ensure hexstrike package is importable BEFORE any hexstrike imports
 # ---------------------------------------------------------------------------
 _HEXSTRIKE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hexstrike")
