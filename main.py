@@ -146,7 +146,16 @@ def start_hexstrike_server(port: int) -> None:
 
     try:
         from hexstrike_server import app
+        # Suppress logging noise from hexstrike_server imports
         app.config["JSON_SORT_KEYS"] = False
+        # Redirect hexstrike.log to /tmp to avoid permission issues
+        import logging as _lg
+        for h in _lg.getLogger().handlers[:]:
+            if hasattr(h, 'baseFilename') and h.baseFilename and h.baseFilename.endswith('hexstrike.log'):
+                try:
+                    h.baseFilename = '/tmp/hexstrike.log'
+                except Exception:
+                    pass
         app.run(
             host="0.0.0.0",
             port=port,
@@ -380,6 +389,61 @@ class HexStrikePlanner:
             "risk_assessment": {"overall": "unknown"},
             "resource_requirements": {},
         }
+
+    def chat(self, message: str, history: Optional[List[Dict]] = None) -> str:
+        """Direct conversational chat with Planner (for interactive dashboard).
+
+        Unlike plan(), this uses a general-purpose system prompt for free-form chat.
+
+        Args:
+            message: User message.
+            history: Previous conversation history (optional).
+
+        Returns:
+            String response from Gemini.
+        """
+        cleaned_msg = validate_input(message)
+        self._ensure_client()
+
+        system_prompt = (
+            "You are Gemini, the strategic AI assistant within HexStrike AI. "
+            "You are an expert in cybersecurity, penetration testing, network analysis, "
+            "and strategic planning. Respond clearly and provide detailed technical insights. "
+            "Respond in the same language as the user. "
+            "You have access to 150+ security tools via the HexStrike MCP Server "
+            "(hexstrike_server.py + hexstrike_mcp.py)."
+        )
+
+        messages = []
+        for msg in self._conversation_history:
+            role = msg["role"]
+            content = msg["content"]
+            if role == "user":
+                messages.append({"role": "user", "parts": [content]})
+            elif role == "model":
+                messages.append({"role": "model", "parts": [content]})
+
+        try:
+            self.logger.info(f"Chat request ({len(cleaned_msg)} chars)...")
+            if messages:
+                chat = self._client.start_chat(history=messages)
+                response = chat.send_message(cleaned_msg)
+            else:
+                response = self._client.generate_content(cleaned_msg)
+
+            raw_output = response.text if hasattr(response, "text") else str(response)
+            cleaned_output = sanitize_output(raw_output)
+            self._conversation_history.append({"role": "user", "content": cleaned_msg})
+            self._conversation_history.append({"role": "model", "content": cleaned_output})
+            return cleaned_output
+
+        except Exception as exc:
+            self.logger.error(f"Chat failed: {exc}")
+            return f"Error: {exc}"
+
+    def clear_history(self):
+        """Clear conversation history."""
+        self._conversation_history.clear()
 
     def get_status(self) -> dict:
         return {
@@ -656,6 +720,10 @@ class HexStrikeExecutor:
             "dependencies": [],
             "execution_command": "",
         }
+
+    def clear_history(self):
+        """No-op for executor (stateless chat via API)."""
+        pass
 
     def get_status(self) -> dict:
         return {
@@ -1233,82 +1301,55 @@ def _fetch_server_status(hexstrike_client) -> dict:
 def _format_status(planner, executor, recon, hexstrike_client) -> str:
     lines = []
 
-    for name, agent in [("planner", planner), ("executor", executor), ("recon", recon)]:
+    for name, agent in [("Planner (Gemini)", planner), ("Executor (Devstral)", executor), ("Recon (Local)", recon)]:
         try:
             s = agent.get_status()
-            model = f"{s.get('model', 'N/A')} ({s.get('provider', 'N/A')})"
-            lines.append(f"**{name}**: {model}")
+            icon = "ON" if s.get("api_key_set", True) else "OFF"
+            lines.append(f"- **{name}**: {s.get('model', '?')} [{icon}]")
         except Exception:
-            lines.append(f"**{name}**: ERROR")
+            lines.append(f"- **{name}**: unavailable")
 
-    if hexstrike_client is not None:
-        health = _fetch_server_status(hexstrike_client)
-        online = health.get("online", False)
-        if online:
-            total = health.get("total_tools_count", "?")
-            available = health.get("total_tools_available", "?")
-            uptime = health.get("uptime", 0)
-            mins = int(uptime // 60)
-            secs = int(uptime % 60)
-            lines.append(
-                f"\n**HexStrike Server**: ONLINE "
-                f"({available}/{total} tools, up {mins}m {secs}s)"
-            )
+    try:
+        health = _check_server_health(hexstrike_client)
+        if health.get("online"):
+            lines.append(f"- **HexStrike Server**: Online (v{health.get('version', '?')})")
         else:
-            lines.append("\n**HexStrike Server**: OFFLINE")
-    else:
-        lines.append("\n**HexStrike Server**: NOT CONNECTED")
+            lines.append("- **HexStrike Server**: Offline")
+    except Exception:
+        lines.append("- **HexStrike Server**: Unreachable")
 
     return "\n".join(lines)
 
 
 def _format_tools_list(hexstrike_client) -> str:
-    if hexstrike_client is None:
-        return "HexStrike server not connected."
+    categories = {
+        "Network Scanning": ["nmap", "masscan", "rustscan"],
+        "Web Security": ["nuclei", "nikto", "sqlmap", "xsser", "dalfox"],
+        "Directory Brute": ["gobuster", "dirb", "dirsearch", "ffuf"],
+        "Subdomain Enum": ["subfinder", "amass", "httpx", "katana"],
+        "CMS Tools": ["wpscan"],
+        "Cloud Security": ["prowler", "scout-suite", "trivy", "kube-hunter", "checkov"],
+        "Exploitation": ["hydra", "hashcat", "john"],
+        "Container": ["docker-bench-security", "clair", "falco"],
+        "File/Payload": ["create_file", "modify_file", "delete_file", "generate_payload"],
+        "Python Env": ["install_python_package", "execute_python_script"],
+    }
 
-    health = _fetch_server_status(hexstrike_client)
-    if not health.get("online", False):
-        return "HexStrike server is offline."
-
-    category_stats = health.get("category_stats", {})
-    tools_status = health.get("tools_status", {})
-
-    if not category_stats:
-        return "No tool information available."
-
-    lines = ["### Available Tools by Category\n"]
-    for cat, stats in category_stats.items():
-        total = stats.get("total", 0)
-        avail = stats.get("available", 0)
-        icon = ":white_check_mark:" if avail == total else (":warning:" if avail > 0 else ":x:")
-        lines.append(f"**{cat.replace('_', ' ').title()}**: {avail}/{total} installed {icon}")
-
-    lines.append(f"\n**Total**: {health.get('total_tools_available', 0)} / "
-                 f"{health.get('total_tools_count', 0)} tools installed")
-
-    available_tools = [t for t, s in tools_status.items() if s]
-    if available_tools:
-        lines.append("\n<details><summary>Installed Tools</summary>\n")
-        for t in sorted(available_tools):
-            lines.append(f"- `{t}`")
-        lines.append("</details>")
-
-    missing_tools = [t for t, s in tools_status.items() if not s]
-    if missing_tools:
-        lines.append("\n<details><summary>Missing Tools</summary>\n")
-        for t in sorted(missing_tools):
-            lines.append(f"- `{t}`")
-        lines.append("</details>")
+    lines = ["### Available Security Tools (150+)", ""]
+    for cat, tools in categories.items():
+        lines.append(f"**{cat}**: `{', '.join(tools)}`")
+    lines.append("")
+    lines.append("_Use **Tools** tab or `tools` mode to execute._")
 
     return "\n".join(lines)
 
 
 # ============================================================================
-# Gradio Dashboard
+# Gradio Dashboard — Gradio 6.x compatible
 # ============================================================================
 
 def create_gradio_interface(planner, executor, recon, hexstrike_client, port: int = 7860):
-    """Build and launch the Gradio dashboard.
+    """Build and launch the Gradio dashboard (Gradio 6.x compatible).
 
     All tool calls go through hexstrike_mcp.py (HexStrikeClient) -> hexstrike_server.py (Flask).
     """
@@ -1321,13 +1362,68 @@ def create_gradio_interface(planner, executor, recon, hexstrike_client, port: in
         print("ERROR: gradio not installed. Run: pip install gradio")
         sys.exit(1)
 
-    def chat_handler(message, history, mode):
+    # ---- HexStrike Security Tab handlers ----
+
+    def hexstrike_chat_handler(message, history, mode):
         if not message or not message.strip():
-            return history, ""
+            yield history + [], ""
+            return
         response = process_chat(message, history, planner, executor, recon, mode, hexstrike_client)
         history = history or []
-        history.append([message, response])
-        return history, ""
+        history = history + [
+            {"role": "user", "content": message},
+            {"role": "assistant", "content": response},
+        ]
+        yield history, ""
+
+    def hexstrike_clear_handler():
+        return [], ""
+
+    # ---- AI Chat Tab handlers (direct model chat) ----
+
+    def gemini_chat_handler(message, history):
+        if not message or not message.strip():
+            yield history + [], ""
+            return
+        try:
+            response = planner.chat(message)
+        except Exception as exc:
+            response = f"Error: {exc}"
+        history = history or []
+        history = history + [
+            {"role": "user", "content": message},
+            {"role": "assistant", "content": response},
+        ]
+        yield history, ""
+
+    def devstral_chat_handler(message, history):
+        if not message or not message.strip():
+            yield history + [], ""
+            return
+        try:
+            chat_history = []
+            for msg in (history or []):
+                if isinstance(msg, dict):
+                    role = "user" if msg.get("role") == "user" else "assistant"
+                    chat_history.append({"role": role, "content": msg.get("content", "")})
+            response = executor.chat(message, chat_history)
+        except Exception as exc:
+            response = f"Error: {exc}"
+        history = history or []
+        history = history + [
+            {"role": "user", "content": message},
+            {"role": "assistant", "content": response},
+        ]
+        yield history, ""
+
+    def gemini_clear_handler():
+        planner.clear_history()
+        return [], ""
+
+    def devstral_clear_handler():
+        return [], ""
+
+    # ---- Status / Info handlers ----
 
     def status_handler():
         return _format_status(planner, executor, recon, hexstrike_client)
@@ -1335,19 +1431,12 @@ def create_gradio_interface(planner, executor, recon, hexstrike_client, port: in
     def tools_handler():
         return _format_tools_list(hexstrike_client)
 
-    def clear_handler():
-        return [], ""
-
     def refresh_server_handler():
         return status_handler(), tools_handler()
 
-    with gr.Blocks(
-        title="HexStrike AI Dashboard",
-        theme=gr.themes.Soft(
-            primary_hue="red",
-            secondary_hue="neutral",
-        ),
-    ) as demo:
+    # ---- Build UI ----
+
+    with gr.Blocks(title="HexStrike AI Dashboard") as demo:
         gr.Markdown(
             "# HexStrike AI Dashboard\n"
             "Multi-Agent AI System: **Gemini 2.5 Flash** (Planner) + "
@@ -1355,85 +1444,180 @@ def create_gradio_interface(planner, executor, recon, hexstrike_client, port: in
             "150+ integrated security tools via **hexstrike_server.py** + **hexstrike_mcp.py**"
         )
 
-        with gr.Row():
-            with gr.Column(scale=3):
-                mode_radio = gr.Radio(
-                    choices=[
-                        "auto", "chat", "planner", "executor", "recon",
-                        "tools", "smart_scan", "bugbounty",
-                    ],
-                    value="auto",
-                    label="Mode",
-                    info=(
-                        "auto=full pipeline | chat=AI chat | planner/executor/recon=single agent "
-                        "| tools=call security tools | smart_scan=AI scan | bugbounty=assessment"
-                    ),
-                )
-                chatbot = gr.Chatbot(
-                    label="HexStrike Chat",
-                    height=500,
-                    type="messages",
-                    show_copy_button=True,
+        with gr.Tabs():
+            # ===== TAB 1: AI Chat (Direct Model Chat) =====
+            with gr.Tab("AI Chat"):
+                gr.Markdown(
+                    "### Direct chat with AI models. No security tools, just conversation.\n"
+                    "**Gemini 2.5 Flash** for strategic analysis | **Devstral 2512** for coding tasks"
                 )
                 with gr.Row():
-                    msg_input = gr.Textbox(
-                        label="Input",
-                        placeholder=(
-                            "Enter target URL, IP, or command...\n"
-                            "  tools mode:    nmap: {\"target\": \"example.com\"}\n"
-                            "  smart_scan:    example.com\n"
-                            "  bugbounty:     example.com"
-                        ),
+                    gemini_btn = gr.Button("Chat with Gemini", variant="primary")
+                    devstral_btn = gr.Button("Chat with Devstral", variant="secondary")
+
+                gemini_chatbot = gr.Chatbot(label="Gemini 2.5 Flash", height=450)
+                with gr.Row():
+                    gemini_input = gr.Textbox(
+                        label="Message to Gemini",
+                        placeholder="Ask anything about cybersecurity, strategy, analysis...",
                         scale=4,
                         lines=2,
                     )
-                    send_btn = gr.Button("Send", variant="primary", scale=1)
-
+                    gemini_send = gr.Button("Send", variant="primary", scale=1)
                 with gr.Row():
-                    clear_btn = gr.Button("Clear Chat")
-                    status_btn = gr.Button("Check Status")
+                    gemini_clear = gr.Button("Clear Chat")
 
-            with gr.Column(scale=1):
-                status_output = gr.Markdown(
-                    "Click **Check Status** to see agent status."
+                devstral_chatbot = gr.Chatbot(label="Devstral 2512", height=450)
+                with gr.Row():
+                    devstral_input = gr.Textbox(
+                        label="Message to Devstral",
+                        placeholder="Ask coding questions, exploit dev, tool creation...",
+                        scale=4,
+                        lines=2,
+                    )
+                    devstral_send = gr.Button("Send", variant="primary", scale=1)
+                with gr.Row():
+                    devstral_clear = gr.Button("Clear Chat")
+
+                # Toggle visibility
+                def show_gemini():
+                    return gr.Column(visible=True), gr.Column(visible=False)
+                def show_devstral():
+                    return gr.Column(visible=False), gr.Column(visible=True)
+
+                with gr.Row(visible=False) as gemini_panel:
+                    pass
+                with gr.Row(visible=True) as devstral_panel:
+                    pass
+
+                gemini_btn.click(
+                    fn=lambda: (
+                        gr.Column(visible=True),
+                        gr.Column(visible=False),
+                    ),
+                    outputs=[gemini_panel, devstral_panel],
                 )
-                tools_output = gr.Markdown(
-                    "Click **List Tools** to see available security tools."
+                devstral_btn.click(
+                    fn=lambda: (
+                        gr.Column(visible=False),
+                        gr.Column(visible=True),
+                    ),
+                    outputs=[gemini_panel, devstral_panel],
                 )
-                refresh_btn = gr.Button("Refresh Server Info")
 
-        msg_input.submit(
-            fn=chat_handler,
-            inputs=[msg_input, chatbot, mode_radio],
-            outputs=[chatbot, msg_input],
-        )
-        send_btn.click(
-            fn=chat_handler,
-            inputs=[msg_input, chatbot, mode_radio],
-            outputs=[chatbot, msg_input],
-        )
-        clear_btn.click(fn=clear_handler, outputs=[chatbot, msg_input])
-        status_btn.click(fn=status_handler, outputs=[status_output])
-        refresh_btn.click(
-            fn=refresh_server_handler,
-            outputs=[status_output, tools_output],
-        )
-        demo.load(fn=tools_handler, outputs=[tools_output])
+                # Gemini chat events
+                gemini_input.submit(
+                    fn=gemini_chat_handler,
+                    inputs=[gemini_input, gemini_chatbot],
+                    outputs=[gemini_chatbot, gemini_input],
+                )
+                gemini_send.click(
+                    fn=gemini_chat_handler,
+                    inputs=[gemini_input, gemini_chatbot],
+                    outputs=[gemini_chatbot, gemini_input],
+                )
+                gemini_clear.click(fn=gemini_clear_handler, outputs=[gemini_chatbot, gemini_input])
 
-        gr.Examples(
-            examples=[
-                "Scan target https://example.com for vulnerabilities",
-                "Analyze IP 192.168.1.1 for open ports and services",
-                "Write a Python script for port scanning",
-                "Help me understand SQL injection techniques",
-                "Generate a payload for testing XSS",
-                'nmap: {"target": "example.com", "scan_type": "-sV"}',
-                'nuclei: {"target": "https://example.com", "severity": "critical,high"}',
-                'gobuster: {"url": "https://example.com", "mode": "dir"}',
-            ],
-            inputs=msg_input,
-            label="Quick Commands",
-        )
+                # Devstral chat events
+                devstral_input.submit(
+                    fn=devstral_chat_handler,
+                    inputs=[devstral_input, devstral_chatbot],
+                    outputs=[devstral_chatbot, devstral_input],
+                )
+                devstral_send.click(
+                    fn=devstral_chat_handler,
+                    inputs=[devstral_input, devstral_chatbot],
+                    outputs=[devstral_chatbot, devstral_input],
+                )
+                devstral_clear.click(fn=devstral_clear_handler, outputs=[devstral_chatbot, devstral_input])
+
+            # ===== TAB 2: HexStrike Security =====
+            with gr.Tab("HexStrike Security"):
+                with gr.Row():
+                    with gr.Column(scale=3):
+                        mode_radio = gr.Radio(
+                            choices=[
+                                "auto", "chat", "planner", "executor", "recon",
+                                "tools", "smart_scan", "bugbounty",
+                            ],
+                            value="auto",
+                            label="Mode",
+                            info=(
+                                "auto=full pipeline | chat=AI chat | planner/executor/recon=single agent "
+                                "| tools=call security tools | smart_scan=AI scan | bugbounty=assessment"
+                            ),
+                        )
+                        hex_chatbot = gr.Chatbot(label="HexStrike Chat", height=450)
+                        with gr.Row():
+                            msg_input = gr.Textbox(
+                                label="Input",
+                                placeholder=(
+                                    "Enter target URL, IP, or command...\n"
+                                    "  tools mode:    nmap: {\"target\": \"example.com\"}\n"
+                                    "  smart_scan:    example.com\n"
+                                    "  bugbounty:     example.com"
+                                ),
+                                scale=4,
+                                lines=2,
+                            )
+                            send_btn = gr.Button("Send", variant="primary", scale=1)
+
+                        with gr.Row():
+                            clear_btn = gr.Button("Clear Chat")
+                            status_btn = gr.Button("Check Status")
+
+                    with gr.Column(scale=1):
+                        status_output = gr.Markdown(
+                            "Click **Check Status** to see agent status."
+                        )
+                        tools_output = gr.Markdown(
+                            "Click **List Tools** to see available security tools."
+                        )
+                        refresh_btn = gr.Button("Refresh Server Info")
+
+                msg_input.submit(
+                    fn=hexstrike_chat_handler,
+                    inputs=[msg_input, hex_chatbot, mode_radio],
+                    outputs=[hex_chatbot, msg_input],
+                )
+                send_btn.click(
+                    fn=hexstrike_chat_handler,
+                    inputs=[msg_input, hex_chatbot, mode_radio],
+                    outputs=[hex_chatbot, msg_input],
+                )
+                clear_btn.click(fn=hexstrike_clear_handler, outputs=[hex_chatbot, msg_input])
+                status_btn.click(fn=status_handler, outputs=[status_output])
+                refresh_btn.click(
+                    fn=refresh_server_handler,
+                    outputs=[status_output, tools_output],
+                )
+
+                gr.Examples(
+                    examples=[
+                        "Scan target https://example.com for vulnerabilities",
+                        "Analyze IP 192.168.1.1 for open ports and services",
+                        "Write a Python script for port scanning",
+                        "Help me understand SQL injection techniques",
+                        "Generate a payload for testing XSS",
+                        'nmap: {"target": "example.com", "scan_type": "-sV"}',
+                        'nuclei: {"target": "https://example.com", "severity": "critical,high"}',
+                        'gobuster: {"url": "https://example.com", "mode": "dir"}',
+                    ],
+                    inputs=msg_input,
+                    label="Quick Commands",
+                )
+
+            # ===== TAB 3: System Info =====
+            with gr.Tab("System Info"):
+                info_status = gr.Markdown("Loading...")
+                info_tools = gr.Markdown("Loading...")
+                refresh_info_btn = gr.Button("Refresh")
+
+                def load_info():
+                    return status_handler(), tools_handler()
+
+                demo.load(fn=load_info, outputs=[info_status, info_tools])
+                refresh_info_btn.click(fn=load_info, outputs=[info_status, info_tools])
 
     logger.info(f"Launching Gradio Dashboard on port {port} ...")
     demo.launch(
@@ -1441,6 +1625,10 @@ def create_gradio_interface(planner, executor, recon, hexstrike_client, port: in
         server_port=port,
         share=False,
         show_error=True,
+        theme=gr.themes.Soft(
+            primary_hue="red",
+            secondary_hue="neutral",
+        ),
     )
 
 
@@ -1474,14 +1662,7 @@ def main():
 
     banner = f"""
 {'='*60}
-  ██╗  ██╗███████╗██╗  ██╗███████╗████████╗██████╗ ██╗██╗  ██╗███████╗
-  ██║  ██║██╔════╝╚██╗██╔╝██╔════╝╚══██╔══╝██╔══██╗██║██║ ██╔╝██╔════╝
-  ███████║█████╗   ╚███╔╝ ███████╗   ██║   ██████╔╝██║█████╔╝ █████╗
-  ██║  ██║██╔══╝   ██╔██╗ ╚════██║   ██║   ██╔══██╗██║██║═██╗ ██╔══╝
-  ██║  ██║███████╗██╔╝ ██╗███████║   ██║   ██║  ██║██║██║  ██╗███████╗
-  ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚══════╝
-{'='*60}
-  HexStrike AI v2.0 — Multi-Agent Security System
+  HexStrike AI v2.0 - Multi-Agent Security System
   Core Backend: hexstrike_server.py + hexstrike_mcp.py
   Planner: Gemini 2.5 Flash | Executor: Devstral 2512
   Server:  http://0.0.0.0:{args.server_port} (auto-start)

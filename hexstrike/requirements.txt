@@ -15,8 +15,8 @@ mcp>=0.9.0
 google-generativeai>=0.8.0
 mistralai>=1.0.0
 
-# Gradio Dashboard (main.py)
-gradio>=4.0.0
+# Gradio Dashboard (main.py) — Requires Gradio 6.x
+gradio>=6.0.0
 
 # Optional: Selenium (used by hexstrike_server.py)
-selenium>=4.15.0
+# selenium>=4.15.0
