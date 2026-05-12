@@ -142,7 +142,7 @@ else:
     app = None
 
 # API Configuration
-API_PORT = int(os.environ.get('HEXSTRIKE_PORT', 8888))
+API_PORT = int(os.environ.get('HEXSTRIKE_PORT', 9999))
 API_HOST = os.environ.get('HEXSTRIKE_HOST', '127.0.0.1')
 
 # ============================================================================

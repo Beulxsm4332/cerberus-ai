@@ -88,3 +88,27 @@ Stage Summary:
 - Auto-detect backend online/offline status
 - When backend offline: auto-fallback to AI advisory mode
 - All 6 agents have HexStrike tools mapped to their roles
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix port configuration - unify Next.js portal to port 8888, move Python backend to port 9999
+
+Work Log:
+- Analyzed all files referencing ports 3000 and 8888
+- Changed Next.js dev port from 3000 to 8888 in package.json
+- Changed Python backend default port from 8888 to 9999 in hexstrike_server.py
+- Updated next.config.ts rewrite proxy to point to port 9999
+- Updated src/lib/hexstrike/client.ts default URL to port 9999
+- Updated .env.example HEXSTRIKE_BACKEND_URL to port 9999
+- Updated hexstrike/hexstrike-ai-mcp.json server URL to port 9999
+- Updated hexstrike/hexstrike_mcp.py DEFAULT_HEXSTRIKE_SERVER to port 9999
+- Updated Caddyfile reverse_proxy from port 3000 to 8888
+- Added npm scripts: "hexstrike" (start Python backend) and "open" (open browser)
+- Verified build passes successfully (Next.js 16.1.3 Turbopack)
+- Verified no stale port references remain
+
+Stage Summary:
+- Portal (Next.js) now runs on port 8888 (single entry point)
+- Python HexStrike backend runs on port 9999 (background service)
+- All 7 files updated with correct port references
+- Build verified: ✓ Compiled successfully, 56 tools registered
