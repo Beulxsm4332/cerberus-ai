@@ -1,4 +1,6 @@
 # HexStrike AI — Core Dependencies
+# Core Backend: hexstrike_server.py + hexstrike_mcp.py
+
 # Flask API Server (hexstrike_server.py)
 flask>=2.3.0
 psutil>=5.9.0
@@ -9,15 +11,12 @@ beautifulsoup4>=4.12.0
 # MCP Integration (hexstrike_mcp.py)
 mcp>=0.9.0
 
-# AI Models
+# AI Models — Gemini 2.5 Flash (Planner) + Devstral 2512 (Executor)
 google-generativeai>=0.8.0
 mistralai>=1.0.0
 
-# Dashboard (main.py)
+# Gradio Dashboard (main.py)
 gradio>=4.0.0
 
-# Browser Automation (browser_agent.py)
-playwright>=1.40.0
-
-# Optional: Selenium (legacy, still used by hexstrike_server.py)
+# Optional: Selenium (used by hexstrike_server.py)
 selenium>=4.15.0

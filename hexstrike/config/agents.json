@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "system_name": "HexStrike AI",
   "description": "Multi-Agent AI System — Gemini 2.5 Flash (Planner) + Devstral 2512 (Executor)",
-  "architecture": "hexstrike_server.py (tools) + agents/ (AI) + main.py (Gradio dashboard)",
+  "architecture": "hexstrike_server.py (core backend) + hexstrike_mcp.py (MCP client) + main.py (AI models + Gradio dashboard)",
   "environment": {
     "GEMINI_API_KEY": {
       "description": "API key Google AI Studio untuk Gemini 2.5 Flash (Planner)",
@@ -13,11 +13,6 @@
       "required": true
     },
     "HEXSTRIKE_PORT": {
-      "description": "Port Gradio dashboard (default: 7860)",
-      "required": false,
-      "default": 7860
-    },
-    "HEXSTRIKE_SERVER_PORT": {
       "description": "Port HexStrike Flask API server (default: 9999)",
       "required": false,
       "default": 9999
@@ -26,18 +21,24 @@
       "description": "Level logging: DEBUG, INFO, WARNING, ERROR",
       "required": false,
       "default": "INFO"
-    },
-    "HEXSTRIKE_MAX_TURNS": {
-      "description": "Maksimum putaran planner-executor loop",
-      "required": false,
-      "default": 5
     }
   },
-  "agents": {
+  "core_backend": {
+    "hexstrike_server": {
+      "file": "hexstrike/hexstrike_server.py",
+      "port": 9999,
+      "tools_count": 150,
+      "description": "Flask API server — 150+ security tools, IntelligentDecisionEngine, ModernVisualEngine"
+    },
+    "hexstrike_mcp": {
+      "file": "hexstrike/hexstrike_mcp.py",
+      "description": "HexStrikeClient + FastMCP server — bridge to Claude/GPT with HexStrike tool access"
+    }
+  },
+  "ai_models": {
     "planner": {
-      "class": "PlannerAgent",
-      "module": "hexstrike.agents.planner",
-      "file": "hexstrike/agents/planner.py",
+      "class": "HexStrikePlanner",
+      "location": "main.py",
       "model": "gemini-2.5-flash",
       "model_provider": "google",
       "temperature": 0.7,
@@ -53,9 +54,8 @@
       ]
     },
     "executor": {
-      "class": "ExecutorAgent",
-      "module": "hexstrike.agents.executor",
-      "file": "hexstrike/agents/executor.py",
+      "class": "HexStrikeExecutor",
+      "location": "main.py",
       "model": "devstral-2512",
       "model_provider": "mistral",
       "temperature": 0.3,
@@ -71,68 +71,21 @@
       ]
     },
     "recon": {
-      "class": "ReconAgent",
-      "module": "hexstrike.agents.recon",
-      "file": "hexstrike/agents/recon.py",
+      "class": "HexStrikeRecon",
+      "location": "main.py",
       "model": "none",
       "model_provider": "local",
       "role": "Reconnaissance — kumpulkan konteks target sebelum serangan",
       "capabilities": [
         "Analisis file dan direktori lokal",
-        "Pengumpulan metadata environment",
         "Deteksi stack teknologi target",
         "Quick port scan dan DNS resolution",
-        "HTTP header analysis",
-        "Subdomain dan URL enumeration"
-      ]
-    },
-    "browser": {
-      "class": "BrowserAgent",
-      "module": "hexstrike.agents.browser_agent",
-      "file": "hexstrike/agents/browser_agent.py",
-      "model": "none",
-      "model_provider": "playwright",
-      "role": "Browser Automation — screenshot, navigasi, content extraction",
-      "capabilities": [
-        "Screenshot halaman web (full page)",
-        "Navigasi dan interaksi halaman",
-        "Ekstraksi konten dari JS-rendered pages",
-        "Form detection dan analysis",
-        "Link dan metadata extraction",
-        "Headless browser execution"
-      ]
-    },
-    "mcp": {
-      "class": "MCPAgent",
-      "module": "hexstrike.agents.mcp_agent",
-      "file": "hexstrike/agents/mcp_agent.py",
-      "model": "none",
-      "model_provider": "local",
-      "role": "MCP Validation — enforce data contract antar agent",
-      "capabilities": [
-        "Validasi format output Planner dan Executor",
-        "Validasi schema data komunikasi",
-        "Deteksi inkonsistensi antar agent",
-        "Error boundary antar agent",
-        "HexStrike server health monitoring",
-        "Validation log dan audit trail"
+        "HTTP header analysis"
       ]
     }
   },
   "workflow": {
-    "default_chain": ["recon", "planner", "executor", "mcp"],
-    "max_retries": 2,
-    "retry_delay_seconds": 3,
-    "description": "Alur default: Recon → Planner → Executor → MCP Validation"
-  },
-  "hexstrike_server": {
-    "file": "hexstrike/hexstrike_server.py",
-    "port": 9999,
-    "tools_count": 150,
-    "description": "Flask API server dengan 150+ security tools, IntelligentDecisionEngine, ModernVisualEngine"
-  },
-  "hexstrike_mcp": {
-    "file": "hexstrike/hexstrike_mcp.py",
-    "description": "FastMCP client untuk Claude/GPT integration dengan HexStrike tools"
+    "default_chain": ["recon", "planner", "executor"],
+    "description": "Alur default: Recon → Planner (Gemini) → Executor (Devstral)"
   }
 }
