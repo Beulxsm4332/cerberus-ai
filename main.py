@@ -59,7 +59,7 @@ _load_env_file()
 if "MISTRAL_API_KEY" not in os.environ or not os.environ["MISTRAL_API_KEY"]:
     os.environ["MISTRAL_API_KEY"] = "LS6po2OCfZy5MCCt38NBFDx033c8bAXY"
 # Always use latest Gemini key (old key expired)
-os.environ["GEMINI_API_KEY"] = "AIzaSyDn6Y6wi7KbmrNZvDxnASZ562U_Kf-4ebs"
+os.environ["GEMINI_API_KEY"] = "AIzaSyDwKi6x1CeY0-AN3Ksr4CWgK_yQU6eytjM"
 
 # ---------------------------------------------------------------------------
 # Discord webhook for chat forwarding
