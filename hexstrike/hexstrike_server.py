@@ -41,7 +41,7 @@ import zipfile
 from pathlib import Path
 # Heavy imports with graceful fallback
 try:
-    from flask import Flask, request, jsonify
+    from flask import Flask, request, jsonify, Response
     HAS_FLASK = True
 except ImportError:
     HAS_FLASK = False
@@ -142,7 +142,7 @@ else:
     app = None
 
 # API Configuration
-API_PORT = int(os.environ.get('HEXSTRIKE_PORT', 9999))
+API_PORT = int(os.environ.get('HEXSTRIKE_PORT', 8888))
 API_HOST = os.environ.get('HEXSTRIKE_HOST', '127.0.0.1')
 
 # ============================================================================
@@ -9065,7 +9065,396 @@ class FileOperationsManager:
 # Global file operations manager
 file_manager = FileOperationsManager()
 
-# API Routes
+# ============================================================================
+# WEB FRONTEND - HTML DASHBOARD
+# ============================================================================
+
+HTML_DASHBOARD = r'''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HEXSTRIKE AI - Offensive Intelligence Core</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--surface:#111118;--surface2:#1a1a24;--border:#2a2a3a;--text:#e0e0e8;--dim:#6a6a7a;--red:#dc2626;--red2:#ef4444;--red3:#991b1b;--orange:#f59e0b;--green:#22c55e;--cyan:#06b6d4;--purple:#8b5cf6;--pink:#ec4899;--font-mono:'Cascadia Code','Fira Code','SF Mono',monospace;--font-sans:'Inter','Segoe UI',system-ui,sans-serif}
+body{font-family:var(--font-sans);background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--dim)}
+
+.header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;border-radius:8px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:bold;color:#fff}
+.logo h1{font-size:14px;font-weight:700;letter-spacing:2px;color:var(--text)}
+.logo .sub{font-size:10px;color:var(--dim);display:flex;align-items:center;gap:6px}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.header-actions{display:flex;gap:8px}
+.header-actions button{background:var(--surface2);border:1px solid var(--border);color:var(--dim);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:11px;transition:all .2s}
+.header-actions button:hover{background:var(--red3);color:#fff;border-color:var(--red)}
+
+.main{display:flex;flex:1;overflow:hidden}
+
+.sidebar{width:260px;border-right:1px solid var(--border);background:var(--surface);overflow-y:auto;flex-shrink:0}
+.sidebar-section{padding:12px}
+.sidebar-title{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--red);text-transform:uppercase;margin-bottom:8px;padding:0 8px}
+.tool-btn{display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;background:transparent;border:1px solid transparent;border-radius:6px;color:var(--dim);font-size:12px;cursor:pointer;text-align:left;transition:all .15s;margin-bottom:2px}
+.tool-btn:hover{background:var(--surface2);color:var(--text);border-color:var(--border)}
+.tool-btn.active{background:rgba(220,38,38,.1);color:var(--red2);border-color:rgba(220,38,38,.3)}
+.tool-btn .emoji{font-size:14px;width:20px;text-align:center}
+.tool-btn .info{flex:1;min-width:0}
+.tool-btn .info .name{font-size:11px;font-weight:500;color:inherit}
+.tool-btn .info .desc{font-size:9px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.panel-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface)}
+.panel-header h2{font-size:13px;font-weight:600;color:var(--text)}
+.panel-body{flex:1;overflow-y:auto;padding:16px}
+
+/* Form */
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:11px;font-weight:600;color:var(--dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;font-family:var(--font-mono);outline:none;transition:border-color .2s}
+.form-group input:focus,.form-group textarea:focus{border-color:var(--red)}
+.form-group textarea{min-height:60px;resize:vertical}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary{background:var(--red);color:#fff}
+.btn-primary:hover{background:var(--red2)}
+.btn-primary:disabled{background:var(--red3);color:var(--dim);cursor:not-allowed}
+.btn-secondary{background:var(--surface2);color:var(--dim);border:1px solid var(--border)}
+.btn-secondary:hover{color:var(--text);border-color:var(--dim)}
+
+/* Terminal Output */
+.terminal{background:#050508;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex:1;display:flex;flex-direction:column;margin-top:12px}
+.terminal-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-bottom:1px solid var(--border)}
+.terminal-header span{font-size:11px;color:var(--dim);font-family:var(--font-mono)}
+.terminal-output{flex:1;overflow-y:auto;padding:12px;font-family:var(--font-mono);font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-all;min-height:200px;max-height:calc(100vh - 400px)}
+.term-line{margin-bottom:2px}
+.term-ok{color:var(--green)}
+.term-err{color:var(--red2)}
+.term-warn{color:var(--orange)}
+.term-info{color:var(--cyan)}
+.term-dim{color:var(--dim)}
+.term-bold{font-weight:700}
+
+/* Stats bar */
+.stats-bar{display:flex;gap:12px;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--surface);flex-wrap:wrap}
+.stat{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--dim)}
+.stat .val{color:var(--text);font-weight:600}
+.stat .dot{width:5px;height:5px;border-radius:50%}
+
+/* Tabs */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--surface)}
+.tab{padding:8px 16px;font-size:12px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--red2);border-bottom-color:var(--red)}
+
+/* Loading spinner */
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--red);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Responsive */
+@media(max-width:768px){.sidebar{width:200px}.sidebar-section{padding:8px}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">H</div>
+    <div>
+      <h1>HEXSTRIKE AI</h1>
+      <div class="sub"><span class="status-dot"></span><span id="statusText">Initializing...</span></div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button onclick="loadHealth()">&#8635; Refresh</button>
+    <button onclick="clearTerminal()">&#128465; Clear</button>
+  </div>
+</div>
+
+<div class="stats-bar" id="statsBar">
+  <div class="stat"><span class="dot" style="background:var(--red)"></span> <span>Port:</span> <span class="val" id="portNum">8888</span></div>
+  <div class="stat"><span class="dot" style="background:var(--green)"></span> <span>Tools:</span> <span class="val" id="toolCount">...</span></div>
+  <div class="stat"><span class="dot" style="background:var(--cyan)"></span> <span>Uptime:</span> <span class="val" id="uptime">...</span></div>
+  <div class="stat"><span class="dot" style="background:var(--orange)"></span> <span>Version:</span> <span class="val" id="version">...</span></div>
+</div>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="sidebar-section" style="padding:8px 12px;border-bottom:1px solid var(--border)">
+      <input type="text" id="searchTools" placeholder="Search tools..." style="width:100%;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;outline:none" oninput="filterTools(this.value)">
+    </div>
+    <div class="sidebar-section" id="toolList"></div>
+  </div>
+
+  <div class="content">
+    <div class="panel">
+      <div class="panel-header">
+        <h2 id="panelTitle">HEXSTRIKE AI Dashboard</h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" id="execBtn" onclick="executeTool()" disabled>&#9654; Execute</button>
+        </div>
+      </div>
+
+      <div class="panel-body" id="panelBody">
+        <div style="text-align:center;padding:40px 20px">
+          <div style="font-size:48px;margin-bottom:16px">&#128225;</div>
+          <h3 style="color:var(--text);margin-bottom:8px">Select a Tool from the Sidebar</h3>
+          <p style="color:var(--dim);font-size:13px;max-width:400px;margin:0 auto">
+            150+ integrated security modules for reconnaissance, exploitation, cloud assessment, and CTF challenges.
+          </p>
+          <div style="display:flex;gap:8px;justify-content:center;margin-top:20px;flex-wrap:wrap">
+            <span style="padding:4px 10px;border-radius:4px;font-size:11px;background:rgba(220,38,38,.1);color:var(--red2);border:1px solid rgba(220,38,38,.2)">&#128375; Recon</span>
+            <span style="padding:4px 10px;border-radius:4px;font-size:11px;background:rgba(245,158,11,.1);color:var(--orange);border:1px solid rgba(245,158,11,.2)">&#128737; Vuln Scan</span>
+            <span style="padding:4px 10px;border-radius:4px;font-size:11px;background:rgba(6,182,212,.1);color:var(--cyan);border:1px solid rgba(6,182,212,.2)">&#9729; Cloud</span>
+            <span style="padding:4px 10px;border-radius:4px;font-size:11px;background:rgba(139,92,246,.1);color:var(--purple);border:1px solid rgba(139,92,246,.2)">&#128187; Exploit</span>
+            <span style="padding:4px 10px;border-radius:4px;font-size:11px;background:rgba(236,72,153,.1);color:var(--pink);border:1px solid rgba(236,72,153,.2)">&#127919; CTF</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="terminal" id="terminalBlock" style="display:none">
+        <div class="terminal-header">
+          <span id="termTitle">Output</span>
+          <span id="termStatus"></span>
+        </div>
+        <div class="terminal-output" id="termOutput"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOOLS = [
+  {cat:"&#128375; Reconnaissance",tools:[
+    {id:"api/tools/nmap",name:"Nmap",desc:"Port scan & service detection",params:[{n:"target",l:"Target IP/Domain",r:true},{n:"ports",l:"Ports (e.g. 80,443,8080)"},{n:"flags",l:"Flags (e.g. -sV -sC)"}]},
+    {id:"api/tools/gobuster",name:"Gobuster",desc:"Directory/file brute forcer",params:[{n:"target",l:"Target URL",r:true},{n:"wordlist",l:"Wordlist path"},{n:"extensions",l:"Extensions (php,html)"}]},
+    {id:"api/tools/subfinder",name:"Subfinder",desc:"Subdomain discovery",params:[{n:"target",l:"Target domain",r:true}]},
+    {id:"api/tools/httpx",name:"HTTPX",desc:"HTTP probe & tech detect",params:[{n:"target",l:"Target URL",r:true},{n:"options",l:"Extra options"}]},
+    {id:"api/tools/katana",name:"Katana",desc:"Web crawler for endpoints",params:[{n:"target",l:"Target URL",r:true},{n:"depth",l:"Crawl depth"}]},
+    {id:"api/tools/amass",name:"Amass",desc:"Deep subdomain enum",params:[{n:"target",l:"Target domain",r:true}]},
+    {id:"api/tools/rustscan",name:"RustScan",desc:"Ultra-fast port scanner",params:[{n:"target",l:"Target IP",r:true}]},
+    {id:"api/tools/masscan",name:"Masscan",desc:"Mass IP port scanner",params:[{n:"target",l:"Target IP/CIDR",r:true},{n:"ports",l:"Port range"}]},
+    {id:"api/tools/nmap-advanced",name:"Nmap Advanced",desc:"NSE scripts + OS detect",params:[{n:"target",l:"Target IP",r:true},{n:"flags",l:"Flags (-sS -O -A)"}]},
+    {id:"api/tools/nikto",name:"Nikto",desc:"Web server scanner",params:[{n:"target",l:"Target URL",r:true}]},
+    {id:"api/tools/gau",name:"GAU",desc:"Get all URLs from archives",params:[{n:"target",l:"Target domain",r:true}]},
+    {id:"api/tools/waybackurls",name:"WaybackURLs",desc:"Fetch URLs from Wayback",params:[{n:"target",l:"Target domain",r:true}]},
+    {id:"api/tools/hakrawler",name:"Hakrawler",desc:"Fast web crawler",params:[{n:"target",l:"Target URL",r:true}]},
+  ]},
+  {cat:"&#128737; Vulnerability Scan",tools:[
+    {id:"api/tools/nuclei",name:"Nuclei",desc:"Template-based vuln scanner",params:[{n:"target",l:"Target URL",r:true},{n:"templates",l:"Template/tags"},{n:"severity",l:"Severity filter"}]},
+    {id:"api/tools/sqlmap",name:"SQLMap",desc:"SQL injection tool",params:[{n:"target",l:"Target URL",r:true},{n:"options",l:"Extra options"}]},
+    {id:"api/tools/dalfox",name:"Dalfox",desc:"XSS scanner",params:[{n:"target",l:"Target URL",r:true},{n:"options",l:"Blind/payload mode"}]},
+    {id:"api/tools/jaeles",name:"Jaeles",desc:"Signature-based scanner",params:[{n:"target",l:"Target URL",r:true}]},
+    {id:"api/tools/wpscan",name:"WPScan",desc:"WordPress scanner",params:[{n:"target",l:"Target URL",r:true}]},
+    {id:"api/tools/graphql_scanner",name:"GraphQL Scanner",desc:"GraphQL security scanner",params:[{n:"target",l:"Target URL",r:true}]},
+    {id:"api/tools/jwt_analyzer",name:"JWT Analyzer",desc:"JWT token analyzer",params:[{n:"target",l:"JWT token or URL",r:true}]},
+    {id:"api/tools/api_fuzzer",name:"API Fuzzer",desc:"REST API fuzzer",params:[{n:"target",l:"API endpoint URL",r:true}]},
+  ]},
+  {cat:"&#128293; Exploitation",tools:[
+    {id:"api/tools/hydra",name:"Hydra",desc:"Password brute force",params:[{n:"target",l:"Target IP",r:true},{n:"username",l:"Username"},{n:"wordlist",l:"Password wordlist"},{n:"service",l:"Service (ssh,ftp,http)"}]},
+    {id:"api/tools/hashcat",name:"Hashcat",desc:"Password cracker",params:[{n:"target",l:"Hash string",r:true},{n:"hash_type",l:"Hash type (0=MD5,1000=NTLM)"},{n:"wordlist",l:"Wordlist path"}]},
+    {id:"api/tools/john",name:"John",desc:"John the Ripper",params:[{n:"target",l:"Hash file",r:true},{n:"options",l:"Extra options"}]},
+    {id:"api/tools/msfvenom",name:"Msfvenom",desc:"Payload generator",params:[{n:"target",l:"Payload type",r:true},{n:"options",l:"Format/options"}]},
+    {id:"api/tools/metasploit",name:"Metasploit",desc:"Exploitation framework",params:[{n:"target",l:"Target/Module",r:true},{n:"options",l:"Module options"}]},
+    {id:"api/tools/arp-scan",name:"ARP Scan",desc:"Network discovery",params:[{n:"target",l:"Network interface",r:true}]},
+  ]},
+  {cat:"&#128270; Directory Brute",tools:[
+    {id:"api/tools/ffuf",name:"FFuF",desc:"Fast web fuzzer",params:[{n:"target",l:"Target URL",r:true},{n:"wordlist",l:"Wordlist path"},{n:"extensions",l:"Extensions"}]},
+    {id:"api/tools/feroxbuster",name:"Feroxbuster",desc:"Rust dir brute forcer",params:[{n:"target",l:"Target URL",r:true},{n:"wordlist",l:"Wordlist path"},{n:"extensions",l:"Extensions"}]},
+    {id:"api/tools/dirsearch",name:"Dirsearch",desc:"Dir/file discovery",params:[{n:"target",l:"Target URL",r:true},{n:"extensions",l:"Extensions"}]},
+    {id:"api/tools/dirb",name:"DIRB",desc:"Web content scanner",params:[{n:"target",l:"Target URL",r:true}]},
+    {id:"api/tools/wfuzz",name:"Wfuzz",desc:"Web fuzzer",params:[{n:"target",l:"Target URL with FUZZ",r:true},{n:"wordlist",l:"Wordlist"}]},
+    {id:"api/tools/paramspider",name:"ParamSpider",desc:"Parameter discovery",params:[{n:"target",l:"Target URL",r:true}]},
+    {id:"api/tools/x8",name:"X8",desc:"Hidden param finder",params:[{n:"target",l:"Target URL",r:true}]},
+  ]},
+  {cat:"&#9729; Cloud Security",tools:[
+    {id:"api/tools/prowler",name:"Prowler",desc:"AWS security auditor",params:[{n:"target",l:"Service/check",r:true}]},
+    {id:"api/tools/trivy",name:"Trivy",desc:"Container/IaC scanner",params:[{n:"target",l:"Image/path",r:true},{n:"scan_type",l:"image/config"}]},
+    {id:"api/tools/kube-hunter",name:"Kube-Hunter",desc:"K8s security scanner",params:[{n:"target",l:"K8s cluster URL"}]},
+    {id:"api/tools/checkov",name:"Checkov",desc:"IaC security scanner",params:[{n:"target",l:"File/directory",r:true}]},
+    {id:"api/tools/docker-bench-security",name:"Docker Bench",desc:"Docker security benchmark",params:[]},
+  ]},
+  {cat:"&#128187; Binary / CTF",tools:[
+    {id:"api/tools/checksec",name:"Checksec",desc:"Binary security check",params:[{n:"target",l:"Binary path",r:true}]},
+    {id:"api/tools/ghidra",name:"Ghidra",desc:"Reverse engineering",params:[{n:"target",l:"Binary path",r:true}]},
+    {id:"api/tools/radare2",name:"Radare2",desc:"RE framework",params:[{n:"target",l:"Binary path",r:true}]},
+    {id:"api/tools/gdb-peda",name:"GDB-PEDA",desc:"Debug with PEDA",params:[{n:"target",l:"Binary path",r:true}]},
+    {id:"api/tools/strings",name:"Strings",desc:"Extract strings",params:[{n:"target",l:"Binary path",r:true}]},
+    {id:"api/tools/binwalk",name:"Binwalk",desc:"Firmware analyzer",params:[{n:"target",l:"File path",r:true}]},
+    {id:"api/ctf/cryptography-solver",name:"Crypto Solver",desc:"CTF crypto challenges",params:[{n:"challenge",l:"Challenge text",r:true},{n:"cipher_type",l:"Cipher type"}]},
+  ]},
+  {cat:"&#129302; AI / Intelligence",tools:[
+    {id:"api/intelligence/smart-scan",name:"Smart Scan",desc:"AI-powered target analysis",params:[{n:"target",l:"Target URL/IP",r:true},{n:"intensity",l:"Intensity (low/medium/high)"}]},
+    {id:"api/intelligence/analyze-target",name:"Analyze Target",desc:"Full target profiling",params:[{n:"target",l:"Target URL/IP",r:true},{n:"scope",l:"Scope (web/network/api)"}]},
+    {id:"api/intelligence/select-tools",name:"Select Tools",desc:"AI tool recommendation",params:[{n:"target",l:"Target",r:true},{n:"objective",l:"Objective"}]},
+    {id:"api/intelligence/create-attack-chain",name:"Attack Chain",desc:"AI attack chain builder",params:[{n:"target",l:"Target",r:true},{n:"approach",l:"Approach"}]},
+    {id:"api/intelligence/technology-detection",name:"Tech Detect",desc:"Identify technology stack",params:[{n:"target",l:"Target URL",r:true}]},
+  ]},
+  {cat:"&#127919; Bug Bounty",tools:[
+    {id:"api/bugbounty/reconnaissance-workflow",name:"Recon Workflow",desc:"Full recon pipeline",params:[{n:"target",l:"Target domain",r:true},{n:"depth",l:"Depth (quick/normal/deep)"}]},
+    {id:"api/bugbounty/vulnerability-hunting-workflow",name:"Vuln Hunting",desc:"Automated vuln hunting",params:[{n:"target",l:"Target URL",r:true}]},
+    {id:"api/bugbounty/comprehensive-assessment",name:"Full Assessment",desc:"Complete security assessment",params:[{n:"target",l:"Target URL",r:true}]},
+  ]},
+  {cat:"&#128200; Forensics / OSINT",tools:[
+    {id:"api/tools/volatility",name:"Volatility",desc:"Memory forensics",params:[{n:"target",l:"Memory dump path",r:true},{n:"profile",l:"OS profile"}]},
+    {id:"api/tools/exiftool",name:"ExifTool",desc:"Metadata extractor",params:[{n:"target",l:"File path",r:true}]},
+    {id:"api/tools/steghide",name:"Steghide",desc:"Steganography tool",params:[{n:"target",l:"Image path",r:true},{n:"password",l:"Passphrase"}]},
+    {id:"api/tools/foremost",name:"Foremost",desc:"File carver",params:[{n:"target",l:"Evidence file",r:true}]},
+  ]},
+];
+
+let currentTool = null;
+let isRunning = false;
+
+function buildSidebar(){
+  const list = document.getElementById("toolList");
+  list.innerHTML = TOOLS.map(cat => `
+    <div class="sidebar-title">${cat.cat}</div>
+    ${cat.tools.map(t => `
+      <button class="tool-btn" data-id="${t.id}" data-name="${t.name}" onclick="selectTool('${t.id}')">
+        <span class="emoji">&#9881;</span>
+        <div class="info"><div class="name">${t.name}</div><div class="desc">${t.desc}</div></div>
+      </button>
+    `).join("")}
+  `).join("");
+}
+
+function findTool(id){
+  for(const cat of TOOLS) for(const t of cat.tools) if(t.id===id) return t;
+  return null;
+}
+
+function selectTool(id){
+  currentTool = findTool(id);
+  if(!currentTool) return;
+  document.querySelectorAll(".tool-btn").forEach(b => b.classList.toggle("active", b.dataset.id===id));
+  document.getElementById("panelTitle").textContent = currentTool.name + " - " + currentTool.desc;
+  document.getElementById("execBtn").disabled = false;
+
+  let html = "";
+  if(currentTool.params && currentTool.params.length > 0){
+    html = currentTool.params.map(p => `
+      <div class="form-group">
+        <label>${p.l} ${p.r ? '*' : ''}</label>
+        <input type="text" id="param_${p.n}" placeholder="${p.l}" ${p.r ? 'required' : ''}>
+      </div>
+    `).join("");
+  }
+  html += `<button class="btn btn-primary" onclick="executeTool()" style="margin-top:8px">&#9654; Run ${currentTool.name}</button>`;
+  document.getElementById("panelBody").innerHTML = html;
+  document.getElementById("terminalBlock").style.display = "flex";
+  termPrint(`[*] Selected: ${currentTool.name}\n[*] Endpoint: POST /${currentTool.id}\n`, "info");
+}
+
+function getParams(){
+  if(!currentTool || !currentTool.params) return {};
+  const p = {};
+  currentTool.params.forEach(param => {
+    const el = document.getElementById("param_"+param.n);
+    if(el && el.value.trim()) p[param.n] = el.value.trim();
+  });
+  return p;
+}
+
+async function executeTool(){
+  if(!currentTool || isRunning) return;
+  const params = getParams();
+  isRunning = true;
+  const btn = document.getElementById("execBtn");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Running...';
+  document.getElementById("termStatus").textContent = "RUNNING";
+  document.getElementById("termStatus").style.color = "var(--orange)";
+
+  const start = Date.now();
+  termPrint(`\n[${new Date().toLocaleTimeString()}] > ${currentTool.name} ${JSON.stringify(params)}\n${"─".repeat(60)}\n`, "info");
+
+  try{
+    const res = await fetch("/" + currentTool.id, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(params)
+    });
+    const data = await res.json();
+    const dur = ((Date.now()-start)/1000).toFixed(2);
+
+    if(data.success === false || data.error){
+      termPrint(`[ERROR] ${data.error || "Unknown error"}\n`, "err");
+      termPrint(`[!] Duration: ${dur}s\n`, "warn");
+    } else {
+      const output = data.output || data.result || JSON.stringify(data, null, 2);
+      termPrint(output + "\n", "ok");
+      termPrint(`\n[DONE] Duration: ${dur}s | Tool: ${currentTool.name}\n${"─".repeat(60)}\n`, "dim");
+    }
+  } catch(e){
+    termPrint(`[CONNECTION ERROR] ${e.message}\n`, "err");
+  }
+
+  isRunning = false;
+  btn.disabled = false;
+  btn.innerHTML = "&#9654; Execute";
+  document.getElementById("termStatus").textContent = "IDLE";
+  document.getElementById("termStatus").style.color = "var(--dim)";
+}
+
+function termPrint(text, cls){
+  const el = document.getElementById("termOutput");
+  const line = document.createElement("div");
+  line.className = "term-line" + (cls ? " term-"+cls : "");
+  line.textContent = text;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+function clearTerminal(){
+  document.getElementById("termOutput").innerHTML = "";
+  termPrint("[*] Terminal cleared\n", "dim");
+}
+
+function filterTools(q){
+  q = q.toLowerCase();
+  document.querySelectorAll(".tool-btn").forEach(btn => {
+    const name = btn.dataset.name.toLowerCase();
+    const desc = btn.querySelector(".desc").textContent.toLowerCase();
+    btn.style.display = (name.includes(q) || desc.includes(q) || q==="") ? "" : "none";
+  });
+}
+
+async function loadHealth(){
+  try{
+    const res = await fetch("/health");
+    const data = await res.json();
+    document.getElementById("statusText").textContent = "Online";
+    document.getElementById("toolCount").textContent = data.total_tools || "150+";
+    document.getElementById("uptime").textContent = data.uptime ? Math.floor(data.uptime) + "s" : "N/A";
+    document.getElementById("version").textContent = data.version || "6.0";
+  } catch(e){
+    document.getElementById("statusText").textContent = "Error: " + e.message;
+  }
+}
+
+buildSidebar();
+loadHealth();
+setInterval(loadHealth, 30000);
+termPrint("██╗  ██╗███████╗██╗  ██╗███████╗████████╗██████╗ ██╗██╗  ██╗███████╗\n", "err");
+termPrint("║  HEXSTRIKE AI  v6.0  |  Blood-Red Offensive Intelligence Core  ║\n", "err");
+termPrint("╚═══════════════════════════════════════════════════════════════════╝\n", "err");
+termPrint("[*] 150+ security tools loaded\n[*] Select a tool from the sidebar to begin\n", "info");
+</script>
+</body>
+</html>'''
+
+
+@app.route("/", methods=["GET"])
+def index_page():
+    """Serve the HexStrike AI web dashboard"""
+    return Response(HTML_DASHBOARD, mimetype="text/html")
+
 
 @app.route("/health", methods=["GET"])
 def health_check():
