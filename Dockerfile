@@ -19,9 +19,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Copy requirements and install Python dependencies
-COPY hexstrike/requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies FIRST (both files)
+COPY requirements.txt .
+COPY hexstrike/requirements.txt ./hexstrike-requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt -r hexstrike-requirements.txt
 
 # Copy all application code
 COPY . .
@@ -30,10 +31,10 @@ COPY . .
 ENV PORT=7860
 ENV HOSTNAME="0.0.0.0"
 
-# API Keys — Will be overridden by HF Spaces secrets
-# (set in Settings > Variables and secrets > Repository secrets)
-ENV MISTRAL_API_KEY=""
-ENV GEMINI_API_KEY=""
+# API Keys — Set via main.py hardcoded fallback or HF Spaces secrets
+# (DO NOT set empty ENV here — it overrides the hardcoded keys in code)
+# ENV MISTRAL_API_KEY=""
+# ENV GEMINI_API_KEY=""
 
 # Command to run — Gradio dashboard (starts HexStrike server internally)
 CMD ["python", "main.py", "--port", "7860"]
