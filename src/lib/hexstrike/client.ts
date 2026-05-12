@@ -1,7 +1,15 @@
 // HexStrike AI v6.0 — HexStrike Backend Client
-// Direct HTTP bridge to the HexStrike Python pentesting framework (port 8888)
+// Routes all HexStrike Python backend requests through the Next.js portal (port 3000)
+// Next.js rewrites proxy /hexstrike-api/* → http://127.0.0.1:8888/*
 
-const HEXSTRIKE_BACKEND_URL = process.env.HEXSTRIKE_BACKEND_URL || 'http://127.0.0.1:8888';
+// Server-side: direct to Python backend
+const HEXSTRIKE_INTERNAL = process.env.HEXSTRIKE_BACKEND_URL || 'http://127.0.0.1:8888';
+// Client-side proxy path through Next.js portal
+const HEXSTRIKE_PROXY = '/hexstrike-api';
+
+// Detect if we're on server-side (API routes) or need proxy
+const isServer = typeof window === 'undefined';
+const HEXSTRIKE_BACKEND_URL = HEXSTRIKE_INTERNAL;
 
 export interface HexStrikeHealth {
   status: string;
@@ -38,7 +46,11 @@ class HexStrikeClient {
   }
 
   get backendUrl(): string {
-    return this.baseUrl;
+    return HEXSTRIKE_INTERNAL;
+  }
+
+  get proxyUrl(): string {
+    return HEXSTRIKE_PROXY;
   }
 
   /** Check if the HexStrike Python backend is alive */
