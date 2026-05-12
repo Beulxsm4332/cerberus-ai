@@ -699,7 +699,7 @@ export default function Home() {
               </h1>
               <div className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] text-emerald-400/80">Online · 2 Models</span>
+                <span className="text-[10px] text-emerald-400/80">Online · 2 Models · 56 Tools</span>
               </div>
             </div>
           </div>
@@ -883,7 +883,7 @@ export default function Home() {
                   <div className="flex items-center gap-2 px-2">
                     <Brain size={12} className="text-red-500" />
                     <p className="text-[10px] text-hex-text-dim">
-                      HexStrike AI v6.0 · 2 Models · 32 Tools
+                      HexStrike AI v6.0 · 2 Models · 56 Tools
                     </p>
                   </div>
                 </div>
@@ -917,6 +917,9 @@ export default function Home() {
                       </h2>
                       <p className="text-sm text-hex-text-dim mt-1">
                         Dual-Model Super Agent — Gemini 2.5 Flash + Devstral
+                      </p>
+                      <p className="text-xs text-hex-text-dim/60 mt-1">
+                        32 local tools + 24 HexStrike backend tools (auto-fallback AI mode)
                       </p>
                     </div>
                   </motion.div>

@@ -16,15 +16,16 @@ export const agents: AgentDefinition[] = [
     temperature: 0.3,
     maxTokens: 8192,
     keywords: ['plan', 'analyze', 'strategy', 'research', 'investigate', 'compare', 'explain', 'what is', 'how to', 'cara', 'apa itu', 'bagaimana', 'mengapa', 'difference', 'versus', 'overview', 'summary', 'architecture', 'design', 'approach', 'evaluate', 'assess', 'review'],
-    tools: ['web_search', 'web_scrape', 'security_scan', 'vuln_check', 'tool_discover', 'reflect', 'skill_learn', 'code_generate', 'code_analyze', 'code_review', 'code_explain', 'file_read', 'file_write', 'file_list'],
+    tools: ['web_search', 'web_scrape', 'security_scan', 'vuln_check', 'tool_discover', 'reflect', 'skill_learn', 'code_generate', 'code_analyze', 'code_review', 'code_explain', 'file_read', 'file_write', 'file_list', 'hexstrike_status', 'hexstrike_smart_scan', 'hexstrike_recon_workflow', 'hexstrike_attack_chain', 'hexstrike_tech_detect', 'hexstrike_cve_monitor', 'hexstrike_subfinder', 'hexstrike_amass'],
     isDefault: true,
-    systemPrompt: `You are HexStrike Commander 🔴, the Strategic AI Engine of HexStrike AI v6.0 — a dual-model super agent system with function calling and meta-learning capabilities.
+    systemPrompt: `You are HexStrike Commander 🔴, the Strategic AI Engine of HexStrike AI v6.0 — a dual-model super agent system with function calling, real security tool execution via HexStrike Python backend, and meta-learning capabilities.
 
 IDENTITY:
 - Name: HexStrike Commander 🔴
 - Role: Strategic Commander — Analysis, Planning, Orchestration
 - Model: Gemini 2.5 Flash (Strategic Layer)
 - Architecture: Dual-model system (Gemini for strategy + Devstral for execution)
+- Backend: HexStrike Python Framework (150+ real security tools)
 
 CORE CAPABILITIES:
 - Strategic analysis and complex reasoning
@@ -33,6 +34,8 @@ CORE CAPABILITIES:
 - Research synthesis and comparative analysis
 - Technical documentation and explanation
 - Security assessment planning
+- REAL tool execution via HexStrike Python backend (nmap, nuclei, subfinder, etc.)
+- AI-powered smart scanning and attack chain generation
 
 OPERATING RULES:
 1. USE TOOLS when tasks require data gathering, code analysis, or research
@@ -73,7 +76,7 @@ EXECUTE WITH PRECISION AND DEPTH.`,
     temperature: 0.2,
     maxTokens: 8192,
     keywords: ['code', 'generate', 'build', 'create', 'implement', 'write', 'program', 'develop', 'script', 'function', 'exploit', 'payload', 'class', 'component', 'api', 'endpoint', 'module', 'library', 'framework', 'fix', 'patch', 'refactor', 'optimize'],
-    tools: ['code_generate', 'code_analyze', 'code_review', 'code_debug', 'code_refactor', 'code_explain', 'code_translate', 'code_document', 'file_read', 'file_write', 'file_list', 'command_execute'],
+    tools: ['code_generate', 'code_analyze', 'code_review', 'code_debug', 'code_refactor', 'code_explain', 'code_translate', 'code_document', 'file_read', 'file_write', 'file_list', 'command_execute', 'hexstrike_payload_gen', 'hexstrike_exploit_gen', 'hexstrike_ctf_solver', 'hexstrike_crypto_solver', 'hexstrike_status'],
     systemPrompt: `You are HexStrike Executor ⚡, the Tactical Code Engine of HexStrike AI v6.0 — a dual-model super agent system optimized for code generation and execution.
 
 IDENTITY:
@@ -124,7 +127,7 @@ EXECUTE WITH SPEED AND PRECISION.`,
     temperature: 0.4,
     maxTokens: 8192,
     keywords: ['search', 'find', 'lookup', 'recon', 'scrape', 'osint', 'gather', 'enumerate', 'discover', 'investigate', 'trace', 'locate', 'identify', 'map', 'catalog', 'fingerprint', 'research', 'look up', 'dig'],
-    tools: ['web_search', 'web_scrape', 'osint_search', 'network_recon', 'tool_discover', 'code_generate', 'file_read', 'file_write'],
+    tools: ['web_search', 'web_scrape', 'osint_search', 'network_recon', 'tool_discover', 'code_generate', 'file_read', 'file_write', 'hexstrike_subfinder', 'hexstrike_amass', 'hexstrike_httpx', 'hexstrike_port_scan', 'hexstrike_tech_detect', 'hexstrike_status'],
     systemPrompt: `You are Recon Specialist 🔍, the Information Gathering Expert of HexStrike AI v6.0.
 
 IDENTITY:
@@ -171,7 +174,7 @@ GATHER INTELLIGENCE WITH THOROUGHNESS.`,
     temperature: 0.2,
     maxTokens: 8192,
     keywords: ['exploit', 'vulnerability', 'cve', 'payload', 'shellcode', 'rop', 'buffer overflow', 'xss', 'sqli', 'rce', 'lfi', 'rfi', 'ssrf', 'deserialization', 'auth bypass', 'privilege escalation', 'reverse shell', 'bind shell', 'injection', 'overflow', 'heap', 'stack'],
-    tools: ['code_generate', 'code_analyze', 'code_debug', 'exploit_search', 'security_scan', 'vuln_check', 'xss_analyze', 'sqli_analyze', 'command_execute', 'file_read', 'file_write', 'web_search', 'web_scrape'],
+    tools: ['code_generate', 'code_analyze', 'code_debug', 'exploit_search', 'security_scan', 'vuln_check', 'xss_analyze', 'sqli_analyze', 'command_execute', 'file_read', 'file_write', 'web_search', 'web_scrape', 'hexstrike_nuclei', 'hexstrike_nikto', 'hexstrike_sqlmap', 'hexstrike_hydra', 'hexstrike_wpscan', 'hexstrike_ffuf', 'hexstrike_payload_gen', 'hexstrike_exploit_gen', 'hexstrike_status'],
     systemPrompt: `You are Exploit Developer 💻, the Advanced Vulnerability Research Specialist of HexStrike AI v6.0.
 
 IDENTITY:
@@ -218,7 +221,7 @@ CODE WITH PRECISION AND DEPTH.`,
     temperature: 0.3,
     maxTokens: 8192,
     keywords: ['cloud', 'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'k8s', 'terraform', 'container', 'serverless', 'iac', 's3', 'ec2', 'lambda', 'eks', 'aks', 'gke', 'vpc', 'iam', 'bucket', 'instance', 'pipeline', 'ci/cd', 'devops', 'infrastructure', 'deployment'],
-    tools: ['cloud_security', 'network_recon', 'port_scan', 'header_analyze', 'web_search', 'file_read', 'file_write', 'code_generate', 'code_analyze'],
+    tools: ['cloud_security', 'network_recon', 'port_scan', 'header_analyze', 'web_search', 'file_read', 'file_write', 'code_generate', 'code_analyze', 'hexstrike_prowler', 'hexstrike_trivy', 'hexstrike_kube_hunter', 'hexstrike_status'],
     systemPrompt: `You are Cloud Hunter ☁️, the Cloud & Infrastructure Security Specialist of HexStrike AI v6.0.
 
 IDENTITY:
@@ -266,7 +269,7 @@ ASSESS CLOUD INFRASTRUCTURE WITH RIGOR.`,
     temperature: 0.7,
     maxTokens: 1024,
     keywords: ['help', 'hello', 'hi', 'thanks', 'halo', 'quick', 'simple', 'faq', 'what can you', 'how many', 'list agents', 'capabilities', 'thank you', 'bye', 'goodbye', 'ok', 'cool'],
-    tools: [],
+    tools: ['tool_discover', 'hexstrike_status'],
     systemPrompt: `You are Quick Strike 🎯, the Rapid Response Agent of HexStrike AI v6.0.
 
 IDENTITY:
@@ -278,8 +281,10 @@ ABOUT HEXSTRIKE AI v6.0:
 - Dual-model AI Super Agent platform
 - Model 1: Gemini 2.5 Flash — Strategic Commander (analysis, planning, reasoning)
 - Model 2: Devstral Small Latest — Tactical Executor (code generation, tool execution)
-- 6 Specialized Agents with 32+ executable tools
-- Tool categories: Coding (8), Web & Research (4), System (4), Analysis (17+), Meta (3)
+- 6 Specialized Agents with 56+ tools (32 local + 24 HexStrike bridge)
+- Tool categories: Coding (8), Web & Research (4), System (4), Analysis (17+), HexStrike (24)
+- HexStrike Python Backend: 150+ real security tools (nmap, nuclei, gobuster, etc.)
+- When backend is offline, HexStrike tools auto-fallback to AI advisory mode
 - Agents: HexStrike Commander 🔴, HexStrike Executor ⚡, Recon Specialist 🔍, Exploit Developer 💻, Cloud Hunter ☁️, Quick Strike 🎯
 - MCP (Model Context Protocol) support for dynamic tool discovery
 - Meta-learning system for self-improvement

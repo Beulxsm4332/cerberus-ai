@@ -12,8 +12,28 @@ import { getSelfEvolutionSummary, getContextForTask, recordExperience } from "@/
 
 // Import and register all tools SYNCHRONOUSLY at module load time
 import { allTools } from "@/lib/tools/definitions";
+import { hexstrikeBridgeTools } from "@/lib/hexstrike/bridge-tools";
+import { hexstrikeClient } from "@/lib/hexstrike/client";
 toolRegistry.registerTools(allTools);
-console.log(`[HexStrike v6.0] Registered ${allTools.length} tools on startup`);
+toolRegistry.registerTools(hexstrikeBridgeTools);
+console.log(`[HexStrike v6.0] Registered ${allTools.length} local + ${hexstrikeBridgeTools.length} HexStrike bridge = ${allTools.length + hexstrikeBridgeTools.length} total tools`);
+
+// Async: check backend connection on first request (non-blocking)
+let backendChecked = false;
+async function ensureBackendChecked() {
+  if (!backendChecked) {
+    backendChecked = true;
+    hexstrikeClient.checkHealth().then(health => {
+      if (hexstrikeClient.connected) {
+        console.log(`[HexStrike v6.0] Python backend ONLINE at ${hexstrikeClient.backendUrl} — ${health.total_tools} tools available`);
+      } else {
+        console.log(`[HexStrike v6.0] Python backend offline — using AI fallback mode for HexStrike tools`);
+      }
+    }).catch(() => {
+      console.log(`[HexStrike v6.0] Python backend unreachable — using AI fallback mode`);
+    });
+  }
+}
 
 const MAX_ITERATIONS = 5;
 
@@ -324,9 +344,12 @@ async function handleStreaming(agent: AgentDefinition, messages: ModelMessage[],
   });
 }
 
-// GET /api/chat — Return agent list
+// GET /api/chat — Return agent list + HexStrike backend status
 export async function GET() {
   try {
+    // Trigger async backend check
+    ensureBackendChecked();
+
     const agentList = agents.map(a => ({
       id: a.id,
       name: a.name,
@@ -336,7 +359,15 @@ export async function GET() {
       modelProvider: a.modelProvider,
       toolsCount: a.tools.length,
     }));
-    return NextResponse.json({ agents: agentList });
+    return NextResponse.json({
+      agents: agentList,
+      hexstrike_backend: {
+        connected: hexstrikeClient.connected,
+        url: hexstrikeClient.backendUrl,
+        tools: hexstrikeClient.lastHealth?.total_tools || 0,
+      },
+      total_tools: toolRegistry.getTotalCount(),
+    });
   } catch {
     return NextResponse.json({ error: "Failed to load agent list." }, { status: 500 });
   }

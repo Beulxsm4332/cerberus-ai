@@ -1,11 +1,14 @@
-// Cerberus AI v4.0 — Tool Registry
+// HexStrike AI v6.0 — Tool Registry
 // Central registry for all tool definitions with search and discovery
+// Now integrates with HexStrike Python backend for real security tool execution
 
 import type { ToolDefinition, AgentDefinition } from './types';
+import { hexstrikeClient } from '../hexstrike/client';
 
 class ToolRegistry {
   private tools: Map<string, ToolDefinition> = new Map();
   private agentToolMap: Map<string, string[]> = new Map();
+  private _backendToolsRegistered: boolean = false;
 
   registerTool(definition: ToolDefinition): void {
     this.tools.set(definition.id, definition);
@@ -67,6 +70,16 @@ class ToolRegistry {
     return Array.from(this.tools.values());
   }
 
+  /** Get only locally-registered tools (not from backend) */
+  getLocalTools(): ToolDefinition[] {
+    return Array.from(this.tools.values()).filter(t => !t.source?.includes('hexstrike'));
+  }
+
+  /** Get HexStrike bridge tools */
+  getHexStrikeTools(): ToolDefinition[] {
+    return Array.from(this.tools.values()).filter(t => t.source === 'hexstrike-backend');
+  }
+
   getToolSummary(): string {
     const categories = new Map<string, ToolDefinition[]>();
     for (const tool of this.tools.values()) {
@@ -84,6 +97,7 @@ class ToolRegistry {
           .join(', ');
         summary += `\n[${tool.id}] ${tool.description}\n`;
         if (params) summary += `  Parameters: ${params}\n`;
+        if (tool.dangerous) summary += `  ⚠️ DANGEROUS — Requires confirmation\n`;
       }
     }
     summary += '\n---\n';
@@ -106,6 +120,7 @@ class ToolRegistry {
 
       formatted += `\n[${tool.id}] ${tool.name}: ${tool.description}\n`;
       if (params) formatted += `  Parameters:\n  ${params}\n`;
+      if (tool.dangerous) formatted += `  ⚠️ DANGEROUS TOOL — Ask user for confirmation before use\n`;
       formatted += `  Usage: Call <tool_call|${tool.id}|{{...}}>\n`;
     }
     formatted += '\n---\n';
@@ -116,9 +131,26 @@ class ToolRegistry {
     return formatted;
   }
 
-  discoverTools(): Promise<ToolDefinition[]> {
-    // Placeholder for MCP dynamic tool discovery
-    return Promise.resolve([]);
+  /**
+   * Discover tools from the HexStrike Python backend
+   * Returns bridge ToolDefinitions for backend tools
+   */
+  async discoverTools(): Promise<ToolDefinition[]> {
+    // Try to connect to HexStrike backend
+    const health = await hexstrikeClient.checkHealth();
+    if (!hexstrikeClient.connected) {
+      console.log('[HexStrike Registry] Backend offline, using local tools only');
+      return [];
+    }
+
+    console.log(`[HexStrike Registry] Backend online! ${health.total_tools} tools available`);
+    return [];
+  }
+
+  /** Check and update backend connection status */
+  async checkBackendConnection(): Promise<boolean> {
+    await hexstrikeClient.checkHealth();
+    return hexstrikeClient.connected;
   }
 
   getCategories(): { category: string; count: number }[] {
