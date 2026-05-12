@@ -1,8 +1,0 @@
-⨯ Failed to start server
-Error: listen EADDRINUSE: address already in use :::8888
-    at <unknown> (Error: listen EADDRINUSE: address already in use :::8888)
-    at new Promise (<anonymous>) {
-  code: 'EADDRINUSE' GET /api/status 200 in 325ms (compile: 300ms, render: 25ms)
-[HexStrike v6.0] Registered 32 local + 24 HexStrike bridge = 56 total tools
- GET /api/chat 200 in 152ms (compile: 145ms, render: 6ms)
-[HexStrike v6.0] Python backend offline — using AI fallback mode for HexStrike tools
