@@ -14,22 +14,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NOVA AI — Super Agent",
+  title: "HexStrike AI — Dual-Model Super Agent",
   description:
-    "Super AI Agent untuk coding, analisis, riset, dan konten. 6 agent spesialis dengan 32+ tools terintegrasi, function calling, dan meta-learning. Powered by Mistral AI.",
+    "Dual-model AI Super Agent powered by Gemini 2.5 Flash + Devstral. 6 specialized agents with 32+ tools, function calling, and meta-learning. Strategic analysis meets tactical execution.",
   keywords: [
-    "NOVA AI",
+    "HexStrike AI",
     "AI agent",
+    "dual model",
+    "Gemini",
+    "Devstral",
     "coding assistant",
     "code generation",
     "super agent",
     "multi-agent",
     "tool-augmented LLM",
-    "Mistral AI",
+    "function calling",
   ],
-  authors: [{ name: "NOVA AI Team" }],
+  authors: [{ name: "HexStrike AI Team" }],
   icons: {
-    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌟</text></svg>",
+    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔴</text></svg>",
   },
 };
 
@@ -39,9 +42,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className="dark">
+    <html lang="en" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-nova-bg text-nova-text`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-hex-bg text-hex-text`}
       >
         {children}
         <Toaster />

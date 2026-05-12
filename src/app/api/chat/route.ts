@@ -1,9 +1,9 @@
-// NOVA AI v4.0 — Chat API Route
-// POST /api/chat — Tool-Augmented LLM with agent loop, tool calling, and SSE streaming
+// HexStrike AI v6.0 — Chat API Route
+// POST /api/chat — Dual-model Tool-Augmented LLM with agent loop, tool calling, and SSE streaming
 
 import { NextRequest, NextResponse } from "next/server";
 import { routeToAgent, agents, type AgentDefinition } from "@/lib/agents";
-import { callMistralAPI, type MistralMessage } from "@/lib/mistral";
+import { callModelAPI, type ModelMessage } from "@/lib/models";
 import { toolRegistry } from "@/lib/tools/registry";
 import { executeToolCall, formatToolCallForLLM } from "@/lib/tools/executor";
 import { parseToolCalls, hasToolCalls, extractFinalAnswer } from "@/lib/tools/parser";
@@ -13,7 +13,7 @@ import { getSelfEvolutionSummary, getContextForTask, recordExperience } from "@/
 // Import and register all tools SYNCHRONOUSLY at module load time
 import { allTools } from "@/lib/tools/definitions";
 toolRegistry.registerTools(allTools);
-console.log(`[NOVA v4.0] Registered ${allTools.length} tools on startup`);
+console.log(`[HexStrike v6.0] Registered ${allTools.length} tools on startup`);
 
 const MAX_ITERATIONS = 5;
 
@@ -29,17 +29,15 @@ export async function POST(request: NextRequest) {
     };
 
     if (!message || typeof message !== "string" || message.trim().length === 0) {
-      return NextResponse.json({ error: "Pesan tidak boleh kosong." }, { status: 400 });
+      return NextResponse.json({ error: "Message cannot be empty." }, { status: 400 });
     }
 
     if (message.length > 10000) {
-      return NextResponse.json({ error: "Pesan terlalu panjang. Maksimal 10.000 karakter." }, { status: 400 });
+      return NextResponse.json({ error: "Message too long. Maximum 10,000 characters." }, { status: 400 });
     }
 
     const sid = sessionId || `session-${Date.now()}`;
     const { agent } = routeToAgent(message, agentId);
-
-    // Tools are already registered synchronously at module level
 
     // Get tools for this agent
     const agentTools = toolRegistry.getToolsForAgent(agent.id, agents);
@@ -58,7 +56,7 @@ export async function POST(request: NextRequest) {
     if (taskContext) systemPrompt += taskContext;
 
     // Build messages array
-    const messages: MistralMessage[] = [{ role: "system", content: systemPrompt }];
+    const messages: ModelMessage[] = [{ role: "system", content: systemPrompt }];
 
     if (history && Array.isArray(history)) {
       const recentHistory = history.slice(-10);
@@ -79,26 +77,28 @@ export async function POST(request: NextRequest) {
     // ===== NON-STREAMING: AGENT LOOP =====
     return handleNonStreaming(agent, messages, sid);
   } catch (error) {
-    console.error("[NOVA API Error]:", error);
+    console.error("[HexStrike API Error]:", error);
     const errorMessage = error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
 // ===== NON-STREAMING HANDLER =====
-async function handleNonStreaming(agent: AgentDefinition, messages: MistralMessage[], sessionId: string) {
+async function handleNonStreaming(agent: AgentDefinition, messages: ModelMessage[], sessionId: string) {
   const toolContext: ToolContext = { sessionId, agentId: agent.id };
   const allToolCalls: ToolCall[] = [];
   let iterations = 0;
   let totalTokens = 0;
+  const startTime = Date.now();
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     iterations++;
-    const startTime = Date.now();
 
-    const result = await callMistralAPI(
+    const provider = agent.modelProvider || 'mistral';
+    const result = await callModelAPI(
       messages,
       agent.model,
+      provider,
       agent.temperature,
       agent.maxTokens
     );
@@ -149,7 +149,7 @@ async function handleNonStreaming(agent: AgentDefinition, messages: MistralMessa
 
   // Max iterations reached
   return NextResponse.json({
-    message: "Mencapai batas iterasi. Berikut ringkasan tools yang digunakan:\n" +
+    message: "Maximum iterations reached. Tool execution summary:\n" +
       allToolCalls.map(tc => `- ${tc.toolName}: ${tc.status}`).join("\n"),
     agent: { id: agent.id, name: agent.name, emoji: agent.emoji, description: agent.description },
     model: agent.model,
@@ -166,7 +166,7 @@ async function handleNonStreaming(agent: AgentDefinition, messages: MistralMessa
 }
 
 // ===== STREAMING HANDLER =====
-async function handleStreaming(agent: AgentDefinition, messages: MistralMessage[], sessionId: string) {
+async function handleStreaming(agent: AgentDefinition, messages: ModelMessage[], sessionId: string) {
   const encoder = new TextEncoder();
 
   const readable = new ReadableStream({
@@ -182,7 +182,7 @@ async function handleStreaming(agent: AgentDefinition, messages: MistralMessage[
         `data: ${JSON.stringify({ type: "agent", data: { id: agent.id, name: agent.name, emoji: agent.emoji, description: agent.description } })}\n\n`
       ));
       controller.enqueue(encoder.encode(
-        `data: ${JSON.stringify({ type: "model", data: agent.model })}\n\n`
+        `data: ${JSON.stringify({ type: "model", data: `${agent.model} (${agent.modelProvider})` })}\n\n`
       ));
 
       for (let i = 0; i < MAX_ITERATIONS; i++) {
@@ -194,9 +194,11 @@ async function handleStreaming(agent: AgentDefinition, messages: MistralMessage[
         ));
 
         try {
-          const result = await callMistralAPI(
+          const provider = agent.modelProvider || 'mistral';
+          const result = await callModelAPI(
             messages,
             agent.model,
+            provider,
             agent.temperature,
             agent.maxTokens
           );
@@ -274,7 +276,7 @@ async function handleStreaming(agent: AgentDefinition, messages: MistralMessage[
             `data: ${JSON.stringify({
               type: "done",
               agent: { id: agent.id, name: agent.name, emoji: agent.emoji },
-              model: agent.model,
+              model: `${agent.model} (${agent.modelProvider})`,
               iterations,
               totalTokens,
               responseTimeMs: Date.now() - startTime,
@@ -292,7 +294,7 @@ async function handleStreaming(agent: AgentDefinition, messages: MistralMessage[
           return;
 
         } catch (error) {
-          console.error(`[NOVA Stream] Iteration ${iterations} error:`, error);
+          console.error(`[HexStrike Stream] Iteration ${iterations} error:`, error);
           const errorMsg = error instanceof Error ? error.message : "Error";
 
           controller.enqueue(encoder.encode(
@@ -306,7 +308,7 @@ async function handleStreaming(agent: AgentDefinition, messages: MistralMessage[
 
       // Max iterations
       controller.enqueue(encoder.encode(
-        `data: ${JSON.stringify({ type: "done", agent: { id: agent.id, name: agent.name, emoji: agent.emoji }, model: agent.model, iterations, totalTokens, responseTimeMs: Date.now() - startTime, toolCalls: allToolCalls.map(tc => ({ toolName: tc.toolName, status: tc.status })) })}\n\n`
+        `data: ${JSON.stringify({ type: "done", agent: { id: agent.id, name: agent.name, emoji: agent.emoji }, model: `${agent.model} (${agent.modelProvider})`, iterations, totalTokens, responseTimeMs: Date.now() - startTime, toolCalls: allToolCalls.map(tc => ({ toolName: tc.toolName, status: tc.status })) })}\n\n`
       ));
       controller.enqueue(encoder.encode("data: [DONE]\n\n"));
       controller.close();
@@ -330,10 +332,12 @@ export async function GET() {
       name: a.name,
       emoji: a.emoji,
       description: a.description,
+      model: a.model,
+      modelProvider: a.modelProvider,
       toolsCount: a.tools.length,
     }));
     return NextResponse.json({ agents: agentList });
   } catch {
-    return NextResponse.json({ error: "Gagal memuat daftar agent." }, { status: 500 });
+    return NextResponse.json({ error: "Failed to load agent list." }, { status: 500 });
   }
 }

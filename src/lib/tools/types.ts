@@ -1,4 +1,4 @@
-// Cerberus AI v4.0 — Tool-Augmented LLM System Types
+// HexStrike AI v6.0 — Tool-Augmented LLM System Types
 
 export interface ToolParameter {
   name: string;
@@ -52,6 +52,7 @@ export interface AgentDefinition {
   emoji: string;
   description: string;
   model: string;
+  modelProvider?: 'gemini' | 'mistral';
   temperature: number;
   maxTokens: number;
   systemPrompt: string;

@@ -25,6 +25,9 @@ import {
   Brain,
   PenTool,
   Zap,
+  Shield,
+  Cloud,
+  Target,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -86,26 +89,26 @@ interface QuickCommand {
 }
 
 // ===== CONSTANTS =====
-const SESSIONS_KEY = 'nova-sessions';
+const SESSIONS_KEY = 'hexstrike-sessions';
 const MAX_SESSIONS = 50;
 const MAX_MESSAGES_PER_SESSION = 100;
 
 const QUICK_COMMANDS: QuickCommand[] = [
-  { icon: <Code2 size={14} />, label: 'Generate Code', prefix: 'Generate ', color: '#3b82f6' },
-  { icon: <BugIcon size={14} />, label: 'Debug Code', prefix: 'Debug this code: ', color: '#f59e0b' },
-  { icon: <BarChart3Icon size={14} />, label: 'Analyze Data', prefix: 'Analyze ', color: '#10b981' },
-  { icon: <PenTool size={14} />, label: 'Write Content', prefix: 'Write ', color: '#8b5cf6' },
-  { icon: <Search size={14} />, label: 'Search Web', prefix: 'Search for ', color: '#06b6d4' },
-  { icon: <EyeIcon size={14} />, label: 'Review Code', prefix: 'Review this code: ', color: '#ec4899' },
+  { icon: <Code2 size={14} />, label: 'Generate Code', prefix: 'Generate ', color: '#dc2626' },
+  { icon: <Shield size={14} />, label: 'Debug Code', prefix: 'Debug this code: ', color: '#f59e0b' },
+  { icon: <Search size={14} />, label: 'Search Web', prefix: 'Search for ', color: '#22c55e' },
+  { icon: <PenTool size={14} />, label: 'Write Content', prefix: 'Write ', color: '#06b6d4' },
+  { icon: <Cloud size={14} />, label: 'Cloud Analysis', prefix: 'Analyze cloud configuration: ', color: '#8b5cf6' },
+  { icon: <Target size={14} />, label: 'Security Scan', prefix: 'Perform security scan on: ', color: '#ec4899' },
 ];
 
 const DEFAULT_AGENTS: AgentInfo[] = [
-  { id: 'nova-core', name: 'NOVA Core', emoji: '🌟', color: '#3b82f6', role: 'Master Agent', description: 'Coding, analysis, web search, system ops.' },
-  { id: 'code-architect', name: 'Code Architect', emoji: '💻', color: '#8b5cf6', role: 'Senior Engineer', description: 'Full-stack development, architecture, code review.' },
-  { id: 'research-analyst', name: 'Research Analyst', emoji: '🔍', color: '#06b6d4', role: 'Research Specialist', description: 'Web search, research, analysis, information.' },
-  { id: 'data-analytics', name: 'Data & Analytics', emoji: '📊', color: '#10b981', role: 'Data Analyst', description: 'Data analysis, visualization, statistics.' },
-  { id: 'creative-writer', name: 'Creative Writer', emoji: '✍️', color: '#f59e0b', role: 'Content Creator', description: 'Writing, blog, documentation, creative content.' },
-  { id: 'quick-helper', name: 'Quick Helper', emoji: '⚡', color: '#ec4899', role: 'Fast Response', description: 'Quick answers, FAQ, greetings.' },
+  { id: 'hexstrike-commander', name: 'HexStrike Commander', emoji: '🔴', color: '#dc2626', role: 'Strategic Commander', description: 'AI-powered analysis, planning, and orchestration engine.' },
+  { id: 'hexstrike-executor', name: 'HexStrike Executor', emoji: '⚡', color: '#f97316', role: 'Tactical Executor', description: 'Code generation, exploitation logic, and rapid development.' },
+  { id: 'recon-specialist', name: 'Recon Specialist', emoji: '🔍', color: '#06b6d4', role: 'OSINT Expert', description: 'Web search, scraping, and information gathering.' },
+  { id: 'exploit-dev', name: 'Exploit Developer', emoji: '💻', color: '#22c55e', role: 'Vuln Researcher', description: 'Advanced code generation and vulnerability research.' },
+  { id: 'cloud-hunter', name: 'Cloud Hunter', emoji: '☁️', color: '#8b5cf6', role: 'Cloud Security', description: 'AWS, Azure, GCP, Docker, K8s security assessment.' },
+  { id: 'quick-strike', name: 'Quick Strike', emoji: '🎯', color: '#ec4899', role: 'Rapid Response', description: 'Fast answers, simple queries, FAQ.' },
 ];
 
 // ===== LOCAL STORAGE HELPERS =====
@@ -129,31 +132,6 @@ function saveSessions(sessions: Session[]) {
   } catch {
     // Storage full, ignore
   }
-}
-
-// ===== INLINE ICON COMPONENTS =====
-function BugIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m8 2 1.88 1.88" /><path d="M14.12 3.88 16 2" /><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1" /><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6" /><path d="M12 20v-9" /><path d="M6.53 9C4.6 8.8 3 7.1 3 5" /><path d="M6 13H2" /><path d="M3 21c0-2.1 1.7-3.9 3.8-4" /><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4" /><path d="M22 13h-4" /><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4" />
-    </svg>
-  );
-}
-
-function EyeIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function BarChart3Icon({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 3v18h18" /><path d="M7 16V8" /><path d="M11 16V5" /><path d="M15 16v-3" /><path d="M19 16v-7" />
-    </svg>
-  );
 }
 
 // ===== CODE BLOCK COMPONENT =====
@@ -232,11 +210,11 @@ function AgentAvatar({ agent, size = 'md' }: { agent?: AgentInfo | Message['agen
         sizeClasses[size]
       )}
       style={{
-        backgroundColor: `${agent?.color || '#3b82f6'}15`,
-        borderColor: `${agent?.color || '#3b82f6'}30`,
+        backgroundColor: `${agent?.color || '#dc2626'}15`,
+        borderColor: `${agent?.color || '#dc2626'}30`,
       }}
     >
-      {agent?.emoji || '🌟'}
+      {agent?.emoji || '🔴'}
     </div>
   );
 }
@@ -278,7 +256,22 @@ export default function Home() {
     fetch('/api/chat')
       .then((res) => res.json())
       .then((data) => {
-        if (data.agents) setAgents(data.agents);
+        if (data.agents) {
+          const mappedAgents = data.agents.map((a: any) => ({
+            id: a.id,
+            name: a.name,
+            emoji: a.emoji,
+            color: a.id === 'hexstrike-commander' ? '#dc2626'
+              : a.id === 'hexstrike-executor' ? '#f97316'
+              : a.id === 'recon-specialist' ? '#06b6d4'
+              : a.id === 'exploit-dev' ? '#22c55e'
+              : a.id === 'cloud-hunter' ? '#8b5cf6'
+              : '#ec4899',
+            role: a.description?.split('—')[0]?.trim() || a.name,
+            description: a.description || '',
+          }));
+          setAgents(mappedAgents);
+        }
       })
       .catch(() => {
         // Use defaults
@@ -428,7 +421,7 @@ export default function Home() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message: text,
-            agent: activeAgent.id === 'nova-core' ? undefined : activeAgent.id,
+            agent: activeAgent.id === 'hexstrike-commander' ? undefined : activeAgent.id,
             history,
             stream: true,
           }),
@@ -672,15 +665,15 @@ export default function Home() {
   };
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-nova-bg page-transition">
+    <div className="h-screen flex flex-col overflow-hidden bg-hex-bg page-transition">
       {/* ===== HEADER ===== */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-nova-border bg-nova-surface/80 backdrop-blur-md">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-hex-border bg-hex-surface/80 backdrop-blur-md">
         <div className="flex items-center gap-3">
           {/* Mobile menu button */}
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden text-nova-text-dim hover:text-nova-text hover:bg-nova-card"
+            className="lg:hidden text-hex-text-dim hover:text-hex-text hover:bg-hex-card"
             onClick={() => setSidebarOpen(!sidebarOpen)}
           >
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
@@ -688,16 +681,16 @@ export default function Home() {
 
           {/* Logo */}
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
-              <span className="text-base">🌟</span>
+            <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center shadow-lg shadow-red-600/20">
+              <span className="text-base">🔴</span>
             </div>
             <div>
-              <h1 className="text-sm font-bold tracking-wide text-nova-text">
-                NOVA AI
+              <h1 className="text-sm font-bold tracking-wide text-hex-text">
+                HEXSTRIKE AI
               </h1>
               <div className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] text-emerald-400/80">Online</span>
+                <span className="text-[10px] text-emerald-400/80">Online · 2 Models</span>
               </div>
             </div>
           </div>
@@ -707,8 +700,8 @@ export default function Home() {
         <div className="hidden sm:flex items-center gap-2">
           <AgentAvatar agent={currentAgentForHeader} size="sm" />
           <div className="text-right">
-            <p className="text-xs font-medium text-nova-text">{currentAgentForHeader.name}</p>
-            <p className="text-[10px] text-nova-text-dim">{currentAgentForHeader.role}</p>
+            <p className="text-xs font-medium text-hex-text">{currentAgentForHeader.name}</p>
+            <p className="text-[10px] text-hex-text-dim">{currentAgentForHeader.role}</p>
           </div>
         </div>
 
@@ -717,7 +710,7 @@ export default function Home() {
           <Button
             variant="ghost"
             size="icon"
-            className="text-nova-text-dim hover:text-nova-text hover:bg-nova-card"
+            className="text-hex-text-dim hover:text-hex-text hover:bg-hex-card"
             onClick={createNewSession}
             title="New chat"
           >
@@ -726,7 +719,7 @@ export default function Home() {
           <Button
             variant="ghost"
             size="icon"
-            className="text-nova-text-dim hover:text-nova-text hover:bg-nova-card"
+            className="text-hex-text-dim hover:text-hex-text hover:bg-hex-card"
             onClick={() => {
               if (activeSessionId) {
                 setSessions(prev => prev.map(s =>
@@ -766,16 +759,16 @@ export default function Home() {
                 }}
                 transition={{ type: 'tween', duration: 0.2 }}
                 className={cn(
-                  'w-[240px] flex-shrink-0 border-r border-nova-border bg-nova-surface/95 backdrop-blur-md flex flex-col z-30',
+                  'w-[240px] flex-shrink-0 border-r border-hex-border bg-hex-surface/95 backdrop-blur-md flex flex-col z-30',
                   'lg:translate-x-0 lg:relative lg:z-0',
                   !sidebarOpen && 'hidden lg:flex'
                 )}
               >
                 {/* New Chat button */}
-                <div className="p-3 border-b border-nova-border">
+                <div className="p-3 border-b border-hex-border">
                   <button
                     onClick={createNewSession}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all text-xs font-medium"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-red-600/30 bg-red-600/10 text-red-400 hover:bg-red-600/20 transition-all text-xs font-medium"
                   >
                     <Plus size={14} />
                     New Chat
@@ -784,13 +777,13 @@ export default function Home() {
 
                 {/* Session list */}
                 {sessions.length > 0 && (
-                  <div className="border-b border-nova-border">
+                  <div className="border-b border-hex-border">
                     <div className="px-4 py-2">
-                      <h3 className="text-[10px] font-semibold tracking-wider text-nova-text-dim uppercase">
+                      <h3 className="text-[10px] font-semibold tracking-wider text-hex-text-dim uppercase">
                         History
                       </h3>
                     </div>
-                    <ScrollArea className="max-h-44 nova-scrollbar-slim">
+                    <ScrollArea className="max-h-44 hex-scrollbar-slim">
                       <div className="px-2 pb-2 space-y-0.5">
                         {sessions.map((session) => (
                           <button
@@ -801,14 +794,14 @@ export default function Home() {
                               activeSessionId === session.id && 'active'
                             )}
                           >
-                            <MessageSquare size={13} className="text-nova-text-dim flex-shrink-0" />
+                            <MessageSquare size={13} className="text-hex-text-dim flex-shrink-0" />
                             <div className="flex-1 min-w-0">
-                              <p className="text-[11px] text-nova-text truncate">
+                              <p className="text-[11px] text-hex-text truncate">
                                 {session.title}
                               </p>
-                              <p className="text-[9px] text-nova-text-dim flex items-center gap-1">
+                              <p className="text-[9px] text-hex-text-dim flex items-center gap-1">
                                 <Clock size={8} />
-                                {new Date(session.createdAt).toLocaleDateString('id-ID', {
+                                {new Date(session.createdAt).toLocaleDateString('en-US', {
                                   day: 'numeric',
                                   month: 'short',
                                 })}
@@ -818,7 +811,7 @@ export default function Home() {
                             </div>
                             <button
                               onClick={(e) => deleteSession(session.id, e)}
-                              className="opacity-0 hover:opacity-100 p-1 rounded text-nova-text-dim hover:text-red-400 transition-all"
+                              className="opacity-0 hover:opacity-100 p-1 rounded text-hex-text-dim hover:text-red-400 transition-all"
                               style={{ opacity: activeSessionId === session.id ? 0.5 : 0 }}
                               onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
                               onMouseLeave={(e) => (e.currentTarget.style.opacity = activeSessionId === session.id ? '0.5' : '0')}
@@ -833,11 +826,11 @@ export default function Home() {
                 )}
 
                 {/* Agent list header */}
-                <div className="p-3 border-b border-nova-border">
-                  <h2 className="text-xs font-semibold tracking-wider text-blue-400 uppercase mb-1">
+                <div className="p-3 border-b border-hex-border">
+                  <h2 className="text-xs font-semibold tracking-wider text-red-500 uppercase mb-1">
                     Agents
                   </h2>
-                  <p className="text-[10px] text-nova-text-dim">
+                  <p className="text-[10px] text-hex-text-dim">
                     Select agent or auto-route
                   </p>
                 </div>
@@ -864,15 +857,15 @@ export default function Home() {
                           {agent.emoji}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-nova-text truncate">
+                          <p className="text-xs font-medium text-hex-text truncate">
                             {agent.name}
                           </p>
-                          <p className="text-[10px] text-nova-text-dim truncate">
+                          <p className="text-[10px] text-hex-text-dim truncate">
                             {agent.role}
                           </p>
                         </div>
                         {activeAgent.id === agent.id && (
-                          <ChevronRight size={14} className="text-blue-400 flex-shrink-0" />
+                          <ChevronRight size={14} className="text-red-500 flex-shrink-0" />
                         )}
                       </button>
                     ))}
@@ -880,11 +873,11 @@ export default function Home() {
                 </ScrollArea>
 
                 {/* Sidebar footer */}
-                <div className="p-3 border-t border-nova-border">
+                <div className="p-3 border-t border-hex-border">
                   <div className="flex items-center gap-2 px-2">
-                    <Brain size={12} className="text-blue-400" />
-                    <p className="text-[10px] text-nova-text-dim">
-                      NOVA AI v4.0 · 32 Tools · Function Calling
+                    <Brain size={12} className="text-red-500" />
+                    <p className="text-[10px] text-hex-text-dim">
+                      HexStrike AI v6.0 · 2 Models · 32 Tools
                     </p>
                   </div>
                 </div>
@@ -898,7 +891,7 @@ export default function Home() {
           {/* Messages */}
           <div
             ref={scrollRef}
-            className="flex-1 overflow-y-auto nova-scrollbar"
+            className="flex-1 overflow-y-auto hex-scrollbar"
           >
             {messages.length === 0 ? (
               /* ===== WELCOME SCREEN ===== */
@@ -911,18 +904,36 @@ export default function Home() {
                     className="space-y-3"
                   >
                     {/* Logo */}
-                    <div className="w-16 h-16 rounded-2xl bg-blue-500 flex items-center justify-center mx-auto">
-                      <span className="text-3xl">🌟</span>
+                    <div className="w-16 h-16 rounded-2xl bg-red-600 flex items-center justify-center mx-auto shadow-lg shadow-red-600/30">
+                      <span className="text-3xl">🔴</span>
                     </div>
 
                     <div>
-                      <h2 className="text-2xl font-bold text-nova-text">
-                        NOVA AI
+                      <h2 className="text-2xl font-bold text-hex-text tracking-wide">
+                        HEXSTRIKE AI
                       </h2>
-                      <p className="text-sm text-nova-text-dim mt-1">
-                        Super AI Agent — Coding, Analysis, Research & More
+                      <p className="text-sm text-hex-text-dim mt-1">
+                        Dual-Model Super Agent — Gemini 2.5 Flash + Devstral
                       </p>
                     </div>
+                  </motion.div>
+
+                  {/* Dual-model badge */}
+                  <motion.div
+                    initial={{ y: 8, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.1, duration: 0.3 }}
+                    className="flex items-center justify-center gap-3"
+                  >
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] border bg-red-600/5 border-red-600/20 text-red-400">
+                      <Brain size={12} />
+                      Gemini 2.5 Flash
+                    </span>
+                    <span className="text-hex-text-dim text-xs">+</span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] border bg-orange-600/5 border-orange-600/20 text-orange-400">
+                      <Zap size={12} />
+                      Devstral
+                    </span>
                   </motion.div>
 
                   {/* Capability cards */}
@@ -933,10 +944,10 @@ export default function Home() {
                     className="flex flex-wrap items-center justify-center gap-2"
                   >
                     {[
-                      { icon: <Code2 size={14} />, label: 'Coding', count: '8 tools', color: '#3b82f6' },
-                      { icon: <Search size={14} />, label: 'Research', count: 'web search & scrape', color: '#06b6d4' },
-                      { icon: <Settings size={14} />, label: 'System', count: 'file ops & commands', color: '#f59e0b' },
-                      { icon: <Brain size={14} />, label: 'Meta', count: 'learning & evolution', color: '#8b5cf6' },
+                      { icon: <Code2 size={14} />, label: 'Coding', count: '8 tools', color: '#dc2626' },
+                      { icon: <Search size={14} />, label: 'Recon', count: 'search & scrape', color: '#06b6d4' },
+                      { icon: <Shield size={14} />, label: 'Security', count: 'scan & vuln check', color: '#f59e0b' },
+                      { icon: <Cloud size={14} />, label: 'Cloud', count: 'multi-cloud', color: '#8b5cf6' },
                     ].map((cat) => (
                       <span
                         key={cat.label}
@@ -965,7 +976,7 @@ export default function Home() {
                       <button
                         key={cmd.label}
                         onClick={() => handleQuickCommand(cmd.prefix)}
-                        className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-nova-border bg-nova-card/50 hover:bg-nova-card hover:border-nova-border transition-all text-left group"
+                        className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-hex-border bg-hex-card/50 hover:bg-hex-card hover:border-hex-border transition-all text-left group"
                       >
                         <div
                           className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
@@ -974,7 +985,7 @@ export default function Home() {
                           {cmd.icon}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-medium text-nova-text group-hover:text-nova-text-dim transition-colors">
+                          <p className="text-xs font-medium text-hex-text group-hover:text-hex-text-dim transition-colors">
                             {cmd.label}
                           </p>
                         </div>
@@ -1007,7 +1018,7 @@ export default function Home() {
                         >
                           {agent.emoji}
                         </div>
-                        <span className="text-[9px] text-nova-text-dim max-w-[60px] text-center truncate">
+                        <span className="text-[9px] text-hex-text-dim max-w-[60px] text-center truncate">
                           {agent.name.split(' ').pop()}
                         </span>
                       </motion.div>
@@ -1032,8 +1043,8 @@ export default function Home() {
                     >
                       {/* Avatar */}
                       {msg.role === 'user' ? (
-                        <div className="w-8 h-8 rounded-lg bg-nova-card border border-nova-border flex items-center justify-center flex-shrink-0">
-                          <Bot size={16} className="text-nova-text-dim" />
+                        <div className="w-8 h-8 rounded-lg bg-hex-card border border-hex-border flex items-center justify-center flex-shrink-0">
+                          <Bot size={16} className="text-hex-text-dim" />
                         </div>
                       ) : (
                         <AgentAvatar agent={msg.agent} size="md" />
@@ -1044,9 +1055,9 @@ export default function Home() {
                         className={cn(
                           'max-w-[80%] rounded-2xl px-4 py-3 border message-bubble relative',
                           msg.role === 'user'
-                            ? 'bg-blue-500/10 border-blue-500/20 rounded-tr-sm'
-                            : 'bg-nova-card border-nova-border rounded-tl-sm',
-                          msg.role === 'system' && 'bg-violet-500/5 border-violet-500/20'
+                            ? 'bg-red-600/10 border-red-600/20 rounded-tr-sm'
+                            : 'bg-hex-card border-hex-border rounded-tl-sm',
+                          msg.role === 'system' && 'bg-red-600/5 border-red-600/20'
                         )}
                       >
                         {/* Agent name for assistant messages */}
@@ -1060,17 +1071,17 @@ export default function Home() {
 
                         {/* Thinking state */}
                         {msg.isThinking && msg.activeTool && (
-                          <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                            <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
-                            <span className="text-xs text-blue-400">
+                          <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-lg bg-red-600/10 border border-red-600/20">
+                            <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                            <span className="text-xs text-red-400">
                               Using {msg.activeTool}...
                             </span>
                           </div>
                         )}
                         {msg.isThinking && !msg.activeTool && (
-                          <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-lg bg-violet-500/10 border border-violet-500/20">
-                            <div className="w-2.5 h-2.5 rounded-full bg-violet-500 animate-pulse" />
-                            <span className="text-xs text-violet-400">
+                          <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-lg bg-red-600/10 border border-red-600/15">
+                            <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                            <span className="text-xs text-red-400">
                               Thinking...
                             </span>
                           </div>
@@ -1088,7 +1099,7 @@ export default function Home() {
                           <div className="message-actions flex items-center gap-1 mt-2">
                             <button
                               onClick={() => handleCopyMessage(msg.content)}
-                              className="flex items-center gap-1 px-1.5 py-1 rounded-md text-nova-text-dim hover:text-nova-text hover:bg-nova-surface transition-all text-[10px]"
+                              className="flex items-center gap-1 px-1.5 py-1 rounded-md text-hex-text-dim hover:text-hex-text hover:bg-hex-surface transition-all text-[10px]"
                             >
                               <Copy size={11} />
                               Copy
@@ -1096,7 +1107,7 @@ export default function Home() {
                             {msg.id === messages[messages.length - 1]?.id && !isLoading && (
                               <button
                                 onClick={handleRegenerate}
-                                className="flex items-center gap-1 px-1.5 py-1 rounded-md text-nova-text-dim hover:text-nova-text hover:bg-nova-surface transition-all text-[10px]"
+                                className="flex items-center gap-1 px-1.5 py-1 rounded-md text-hex-text-dim hover:text-hex-text hover:bg-hex-surface transition-all text-[10px]"
                               >
                                 <RefreshCw size={11} />
                                 Regenerate
@@ -1107,7 +1118,7 @@ export default function Home() {
 
                         {/* Metrics bar */}
                         {msg.role === 'assistant' && !msg.isStreaming && (msg.model || msg.responseTimeMs || msg.tokens) && (
-                          <div className="metrics-bar mt-2 pt-1 border-t border-nova-border/50">
+                          <div className="metrics-bar mt-2 pt-1 border-t border-hex-border/50">
                             {msg.model && (
                               <span className="metric-badge">{msg.model}</span>
                             )}
@@ -1129,24 +1140,24 @@ export default function Home() {
                         {/* Tool calls collapsible */}
                         {msg.toolCalls && msg.toolCalls.length > 0 && !msg.isStreaming && (
                           <details className="mt-2">
-                            <summary className="text-[10px] text-nova-text-dim cursor-pointer hover:text-blue-400 transition-colors flex items-center gap-1">
+                            <summary className="text-[10px] text-hex-text-dim cursor-pointer hover:text-red-400 transition-colors flex items-center gap-1">
                               <Wrench size={10} />
                               Tool Calls ({msg.toolCalls.length})
                             </summary>
-                            <div className="mt-1 space-y-1 max-h-48 overflow-y-auto nova-scrollbar-slim">
+                            <div className="mt-1 space-y-1 max-h-48 overflow-y-auto hex-scrollbar-slim">
                               {msg.toolCalls.map((tc, i) => (
-                                <div key={i} className="px-2 py-1.5 rounded-md bg-nova-surface/50 border border-nova-border/50 text-[10px]">
+                                <div key={i} className="px-2 py-1.5 rounded-md bg-hex-surface/50 border border-hex-border/50 text-[10px]">
                                   <div className="flex items-center gap-1.5">
                                     <span className={tc.status === 'completed' ? 'text-emerald-400' : 'text-red-400'}>
                                       {tc.status === 'completed' ? '✓' : '✗'}
                                     </span>
-                                    <span className="font-mono text-blue-400">{tc.toolName}</span>
+                                    <span className="font-mono text-red-400">{tc.toolName}</span>
                                     {tc.duration && (
-                                      <span className="text-nova-text-dim ml-auto">{tc.duration}ms</span>
+                                      <span className="text-hex-text-dim ml-auto">{tc.duration}ms</span>
                                     )}
                                   </div>
                                   {tc.result && (
-                                    <pre className="mt-1 text-nova-text-dim overflow-x-auto whitespace-pre-wrap max-h-20 opacity-70">{tc.result.slice(0, 300)}{tc.result.length > 300 ? '...' : ''}</pre>
+                                    <pre className="mt-1 text-hex-text-dim overflow-x-auto whitespace-pre-wrap max-h-20 opacity-70">{tc.result.slice(0, 300)}{tc.result.length > 300 ? '...' : ''}</pre>
                                   )}
                                 </div>
                               ))}
@@ -1155,8 +1166,8 @@ export default function Home() {
                         )}
 
                         {/* Timestamp */}
-                        <p className="text-[10px] text-nova-text-dim mt-1.5">
-                          {new Date(msg.timestamp).toLocaleTimeString('id-ID', {
+                        <p className="text-[10px] text-hex-text-dim mt-1.5">
+                          {new Date(msg.timestamp).toLocaleTimeString('en-US', {
                             hour: '2-digit',
                             minute: '2-digit',
                           })}
@@ -1172,7 +1183,7 @@ export default function Home() {
           </div>
 
           {/* ===== INPUT AREA ===== */}
-          <div className="border-t border-nova-border bg-nova-surface/80 backdrop-blur-md p-3">
+          <div className="border-t border-hex-border bg-hex-surface/80 backdrop-blur-md p-3">
             <div className="max-w-3xl mx-auto space-y-2">
               {/* Quick commands (when messages exist) */}
               {messages.length > 0 && (
@@ -1181,10 +1192,10 @@ export default function Home() {
                     <button
                       key={cmd.label}
                       onClick={() => handleQuickCommand(cmd.prefix)}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-nova-border bg-nova-card/50 hover:bg-nova-card transition-all whitespace-nowrap flex-shrink-0"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-hex-border bg-hex-card/50 hover:bg-hex-card transition-all whitespace-nowrap flex-shrink-0"
                     >
                       <span style={{ color: cmd.color }}>{cmd.icon}</span>
-                      <span className="text-[10px] text-nova-text-dim">{cmd.label}</span>
+                      <span className="text-[10px] text-hex-text-dim">{cmd.label}</span>
                     </button>
                   ))}
                 </div>
@@ -1213,7 +1224,7 @@ export default function Home() {
                     placeholder={`Message ${activeAgent.name}...`}
                     disabled={isLoading}
                     rows={1}
-                    className="w-full resize-none rounded-xl border border-nova-border bg-nova-card text-nova-text placeholder:text-nova-text-dim pl-11 pr-10 py-3 text-sm focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 disabled:opacity-50 transition-all min-h-[44px]"
+                    className="w-full resize-none rounded-xl border border-hex-border bg-hex-card text-hex-text placeholder:text-hex-text-dim pl-11 pr-10 py-3 text-sm focus:outline-none focus:border-red-600/50 focus:ring-1 focus:ring-red-600/20 disabled:opacity-50 transition-all min-h-[44px]"
                     style={{
                       maxHeight: '150px',
                     }}
@@ -1223,7 +1234,7 @@ export default function Home() {
                     {inputValue.length > 500 && (
                       <span className={cn(
                         'text-[9px]',
-                        inputValue.length > 9000 ? 'text-red-400' : 'text-nova-text-dim'
+                        inputValue.length > 9000 ? 'text-red-400' : 'text-hex-text-dim'
                       )}>
                         {inputValue.length}/10000
                       </span>
@@ -1235,7 +1246,7 @@ export default function Home() {
                 {isLoading ? (
                   <Button
                     onClick={stopGeneration}
-                    className="h-[44px] w-[44px] rounded-xl bg-nova-card hover:bg-nova-border text-nova-text-dim border border-nova-border flex-shrink-0 transition-all"
+                    className="h-[44px] w-[44px] rounded-xl bg-hex-card hover:bg-hex-border text-hex-text-dim border border-hex-border flex-shrink-0 transition-all"
                   >
                     <Square size={16} />
                   </Button>
@@ -1243,7 +1254,7 @@ export default function Home() {
                   <Button
                     onClick={() => handleSubmit()}
                     disabled={!inputValue.trim()}
-                    className="h-[44px] w-[44px] rounded-xl bg-blue-500 hover:bg-blue-600 text-white flex-shrink-0 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="h-[44px] w-[44px] rounded-xl bg-red-600 hover:bg-red-700 text-white flex-shrink-0 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <Send size={16} />
                   </Button>
@@ -1252,9 +1263,9 @@ export default function Home() {
 
               {/* Footer hint */}
               <div className="flex items-center justify-center gap-1.5 pt-1">
-                <Zap size={10} className="text-nova-text-dim" />
-                <p className="text-[10px] text-nova-text-dim">
-                  Press <kbd className="px-1 py-0.5 rounded bg-nova-card border border-nova-border text-[9px]">Enter</kbd> to send, <kbd className="px-1 py-0.5 rounded bg-nova-card border border-nova-border text-[9px]">Shift+Enter</kbd> for new line
+                <Zap size={10} className="text-hex-text-dim" />
+                <p className="text-[10px] text-hex-text-dim">
+                  Press <kbd className="px-1 py-0.5 rounded bg-hex-card border border-hex-border text-[9px]">Enter</kbd> to send, <kbd className="px-1 py-0.5 rounded bg-hex-card border border-hex-border text-[9px]">Shift+Enter</kbd> for new line
                 </p>
               </div>
             </div>
